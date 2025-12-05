@@ -11,6 +11,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Zap, LogOut, LayoutDashboard } from "lucide-react";
+// import { ThemeToggle } from "@/components/theme-toggle"; // Uncomment to enable dark mode toggle
 
 export function RootLayout() {
   const { user, isAuthenticated, logout, isLoggingOut } = useAuth();
@@ -43,6 +44,7 @@ export function RootLayout() {
           </Link>
 
           <nav className="ml-auto flex items-center space-x-4">
+            {/* <ThemeToggle /> */}
             {isAuthenticated ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
