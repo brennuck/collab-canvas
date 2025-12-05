@@ -18,11 +18,11 @@ model users {
 }
 
 model sessions {
-  id         String   @id
-  user_id    String
-  expires_at DateTime
-  users      users    @relation(references: [id], fields: [user_id], onDelete: Cascade)
+  id        String   @id
+  userId    String   @map("user_id")
+  expiresAt DateTime @map("expires_at")
+  users     users    @relation(references: [id], fields: [userId], onDelete: Cascade)
 
-  @@index([user_id])
+  @@index([userId])
 }
 
