@@ -18,7 +18,7 @@ const loginSchema = z.object({
 
 export const authRouter = router({
   register: publicProcedure.input(registerSchema).mutation(async ({ ctx, input }) => {
-    const existingUser = await ctx.db.user.findUnique({
+    const existingUser = await ctx.db.users.findUnique({
       where: { email: input.email },
     });
 
@@ -32,12 +32,12 @@ export const authRouter = router({
     const passwordHash = await hash(input.password);
     const userId = generateIdFromEntropySize(10);
 
-    const user = await ctx.db.user.create({
+    const user = await ctx.db.users.create({
       data: {
         id: userId,
         email: input.email,
         name: input.name,
-        passwordHash,
+        password_hash: passwordHash,
       },
     });
 
@@ -56,7 +56,7 @@ export const authRouter = router({
   }),
 
   login: publicProcedure.input(loginSchema).mutation(async ({ ctx, input }) => {
-    const user = await ctx.db.user.findUnique({
+    const user = await ctx.db.users.findUnique({
       where: { email: input.email },
     });
 
@@ -67,7 +67,7 @@ export const authRouter = router({
       });
     }
 
-    const validPassword = await verify(user.passwordHash, input.password);
+    const validPassword = await verify(user.password_hash, input.password);
     if (!validPassword) {
       throw new TRPCError({
         code: "UNAUTHORIZED",
@@ -107,4 +107,3 @@ export const authRouter = router({
     };
   }),
 });
-
