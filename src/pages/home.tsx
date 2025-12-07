@@ -44,7 +44,7 @@ export function HomePage() {
       <section className="relative overflow-hidden">
         <div className="absolute inset-0 -z-10 bg-gradient-to-b from-gray-100 to-white dark:from-gray-800 dark:to-gray-900" />
         <div className="mx-auto flex max-w-7xl flex-col items-center justify-center gap-6 px-4 py-24 text-center sm:px-6 md:py-32 lg:px-8">
-          <div className="inline-flex items-center rounded-full border border-gray-200 bg-white px-3 py-1 text-sm dark:border-gray-700 dark:bg-gray-800">
+          <div className="inline-flex items-center rounded-full border border-gray-200 bg-white px-3 py-1 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white">
             <Sparkles className="mr-2 h-3.5 w-3.5" />
             Full-stack starter template
           </div>
