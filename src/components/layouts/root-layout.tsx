@@ -11,6 +11,7 @@ export function RootLayout() {
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const handleLogout = async () => {
+    setDropdownOpen(false);
     await logout();
     navigate("/");
   };
