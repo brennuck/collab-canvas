@@ -7,7 +7,7 @@ A full-stack starter template with React, TypeScript, tRPC, Lucia Auth, Prisma, 
 - **Frontend**: React 19, TypeScript, Vite, React Router, TanStack Query
 - **Backend**: Express, tRPC, Lucia Auth
 - **Database**: PostgreSQL with Prisma ORM
-- **Styling**: Tailwind CSS, shadcn/ui components
+- **Styling**: Tailwind CSS
 - **Validation**: Zod
 - **Forms**: React Hook Form
 - **Testing**: Vitest, React Testing Library
@@ -82,7 +82,7 @@ A full-stack starter template with React, TypeScript, tRPC, Lucia Auth, Prisma, 
 │   ├── components/
 │   │   ├── auth/          # Auth components
 │   │   ├── layouts/       # Layout components
-│   │   └── ui/            # shadcn/ui components
+│   │   └── ui/            # UI components (if needed)
 │   ├── hooks/             # Custom React hooks
 │   ├── lib/               # Client utilities
 │   ├── pages/             # Page components
@@ -295,13 +295,6 @@ psql $DATABASE_URL
    ```tsx
    const { data: posts } = trpc.posts.list.useQuery();
    ```
-
-### Adding shadcn/ui components
-
-Since shadcn/ui components are copy-paste, you can either:
-
-1. Copy components from the [shadcn/ui docs](https://ui.shadcn.com/docs/components)
-2. Or initialize shadcn/ui CLI: `npx shadcn-ui@latest init`
 
 ## Authentication
 

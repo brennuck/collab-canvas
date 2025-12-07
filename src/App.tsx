@@ -1,5 +1,4 @@
 import { Routes, Route } from "react-router-dom";
-import { Toaster } from "@/components/ui/toaster";
 import { RootLayout } from "@/components/layouts/root-layout";
 import { HomePage } from "@/pages/home";
 import { LoginPage } from "@/pages/login";
@@ -9,24 +8,21 @@ import { ProtectedRoute } from "@/components/auth/protected-route";
 
 function App() {
   return (
-    <>
-      <Routes>
-        <Route element={<RootLayout />}>
-          <Route path="/" element={<HomePage />} />
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/register" element={<RegisterPage />} />
-          <Route
-            path="/dashboard"
-            element={
-              <ProtectedRoute>
-                <DashboardPage />
-              </ProtectedRoute>
-            }
-          />
-        </Route>
-      </Routes>
-      <Toaster />
-    </>
+    <Routes>
+      <Route element={<RootLayout />}>
+        <Route path="/" element={<HomePage />} />
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/register" element={<RegisterPage />} />
+        <Route
+          path="/dashboard"
+          element={
+            <ProtectedRoute>
+              <DashboardPage />
+            </ProtectedRoute>
+          }
+        />
+      </Route>
+    </Routes>
   );
 }
 

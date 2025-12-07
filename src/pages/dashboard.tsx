@@ -1,7 +1,4 @@
 import { useAuth } from "@/hooks/use-auth";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
 import { Activity, CreditCard, Users, Zap } from "lucide-react";
 
 const stats = [
@@ -47,70 +44,82 @@ export function DashboardPage() {
   };
 
   return (
-    <div className="container py-8">
+    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
       {/* Welcome Section */}
       <div className="mb-8 flex items-center gap-4">
-        <Avatar className="h-16 w-16">
-          <AvatarFallback className="text-lg">
-            {getInitials(user?.name, user?.email)}
-          </AvatarFallback>
-        </Avatar>
-        <div>
-          <h1 className="text-2xl font-bold">Welcome back, {user?.name ?? "User"}!</h1>
-          <p className="text-muted-foreground">{user?.email}</p>
+        <div className="flex h-16 w-16 items-center justify-center rounded-full bg-gray-900 text-lg font-medium text-white dark:bg-white dark:text-gray-900">
+          {getInitials(user?.name, user?.email)}
         </div>
-        <Badge variant="secondary" className="ml-auto">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+            Welcome back, {user?.name ?? "User"}!
+          </h1>
+          <p className="text-gray-600 dark:text-gray-400">{user?.email}</p>
+        </div>
+        <span className="ml-auto rounded-full bg-gray-100 px-3 py-1 text-sm font-medium text-gray-700 dark:bg-gray-800 dark:text-gray-300">
           Free Plan
-        </Badge>
+        </span>
       </div>
 
       {/* Stats Grid */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {stats.map((stat) => (
-          <Card key={stat.title}>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">{stat.title}</CardTitle>
-              <stat.icon className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stat.value}</div>
-              <p className="text-xs text-muted-foreground">{stat.description}</p>
-            </CardContent>
-          </Card>
+          <div
+            key={stat.title}
+            className="rounded-lg border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800"
+          >
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">{stat.title}</p>
+              <stat.icon className="h-4 w-4 text-gray-400" />
+            </div>
+            <p className="mt-2 text-2xl font-bold text-gray-900 dark:text-white">{stat.value}</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">{stat.description}</p>
+          </div>
         ))}
       </div>
 
       {/* Getting Started Section */}
       <div className="mt-8">
-        <Card>
-          <CardHeader>
-            <CardTitle>Getting Started</CardTitle>
-            <CardDescription>
+        <div className="rounded-lg border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800">
+          <div className="border-b border-gray-200 p-6 dark:border-gray-700">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Getting Started</h2>
+            <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
               This is a placeholder dashboard. Customize it to fit your application needs.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="rounded-lg border p-4">
-              <h3 className="font-medium">🎉 You're authenticated!</h3>
-              <p className="mt-1 text-sm text-muted-foreground">
+            </p>
+          </div>
+          <div className="space-y-4 p-6">
+            <div className="rounded-lg border border-gray-200 p-4 dark:border-gray-700">
+              <h3 className="font-medium text-gray-900 dark:text-white">🎉 You're authenticated!</h3>
+              <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
                 This page is protected and only visible to authenticated users. Try logging out and
                 accessing this page directly — you'll be redirected to login.
               </p>
             </div>
 
-            <div className="rounded-lg border p-4">
-              <h3 className="font-medium">🛠️ Next steps</h3>
-              <ul className="mt-2 space-y-2 text-sm text-muted-foreground">
-                <li>• Add your own tRPC routers in <code className="rounded bg-muted px-1 py-0.5">server/trpc/routers/</code></li>
-                <li>• Update the Prisma schema in <code className="rounded bg-muted px-1 py-0.5">prisma/schema.prisma</code></li>
-                <li>• Customize UI components in <code className="rounded bg-muted px-1 py-0.5">src/components/ui/</code></li>
-                <li>• Add new pages in <code className="rounded bg-muted px-1 py-0.5">src/pages/</code></li>
+            <div className="rounded-lg border border-gray-200 p-4 dark:border-gray-700">
+              <h3 className="font-medium text-gray-900 dark:text-white">🛠️ Next steps</h3>
+              <ul className="mt-2 space-y-2 text-sm text-gray-600 dark:text-gray-400">
+                <li>
+                  • Add your own tRPC routers in{" "}
+                  <code className="rounded bg-gray-100 px-1 py-0.5 dark:bg-gray-700">
+                    server/trpc/routers/
+                  </code>
+                </li>
+                <li>
+                  • Update the Prisma schema in{" "}
+                  <code className="rounded bg-gray-100 px-1 py-0.5 dark:bg-gray-700">
+                    prisma/schema.prisma
+                  </code>
+                </li>
+                <li>
+                  • Add new pages in{" "}
+                  <code className="rounded bg-gray-100 px-1 py-0.5 dark:bg-gray-700">src/pages/</code>
+                </li>
               </ul>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
     </div>
   );
 }
-
