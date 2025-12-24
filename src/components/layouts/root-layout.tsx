@@ -1,8 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { Outlet, Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/use-auth";
-import { Zap, LogOut, LayoutDashboard, ChevronDown } from "lucide-react";
-// import { ThemeToggle } from "@/components/theme-toggle"; // Uncomment to enable dark mode toggle
+import { Pen, LogOut, LayoutDashboard, ChevronDown } from "lucide-react";
 
 export function RootLayout() {
   const { user, isAuthenticated, logout, isLoggingOut } = useAuth();
@@ -40,40 +39,41 @@ export function RootLayout() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <header className="sticky top-0 z-50 w-full border-b border-gray-200 bg-white/95 backdrop-blur dark:border-gray-800 dark:bg-gray-900/95">
-        <div className="mx-auto flex h-14 max-w-7xl items-center px-4 sm:px-6 lg:px-8">
-          <Link to="/" className="flex items-center space-x-2">
-            <Zap className="h-6 w-6 text-gray-900 dark:text-white" />
-            <span className="font-bold text-gray-900 dark:text-white">Starter</span>
+    <div className="min-h-screen bg-[var(--color-surface)]">
+      <header className="sticky top-0 z-50 w-full border-b border-[var(--color-border)] bg-[var(--color-surface)]/95 backdrop-blur">
+        <div className="mx-auto flex h-16 max-w-7xl items-center px-4 sm:px-6 lg:px-8">
+          <Link to="/" className="flex items-center gap-2">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-[var(--color-accent)] to-[var(--color-tertiary)]">
+              <Pen className="h-4 w-4 text-white" />
+            </div>
+            <span className="text-lg font-bold text-[var(--color-text)]">CollabCanvas</span>
           </Link>
 
-          <nav className="ml-auto flex items-center space-x-4">
-            {/* <ThemeToggle /> */}
+          <nav className="ml-auto flex items-center gap-3">
             {isAuthenticated ? (
               <div className="relative" ref={dropdownRef}>
                 <button
                   onClick={() => setDropdownOpen(!dropdownOpen)}
-                  className="flex items-center space-x-2 rounded-lg px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-800"
+                  className="flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium text-[var(--color-text-muted)] transition-colors hover:bg-[var(--color-surface-elevated)] hover:text-[var(--color-text)]"
                 >
-                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-900 text-sm font-medium text-white dark:bg-white dark:text-gray-900">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-[var(--color-accent)] to-[var(--color-tertiary)] text-sm font-semibold text-white">
                     {getInitials(user?.name, user?.email)}
                   </div>
                   <ChevronDown className="h-4 w-4" />
                 </button>
 
                 {dropdownOpen && (
-                  <div className="absolute right-0 mt-2 w-56 rounded-lg border border-gray-200 bg-white py-1 shadow-lg dark:border-gray-700 dark:bg-gray-800">
-                    <div className="border-b border-gray-200 px-4 py-3 dark:border-gray-700">
-                      <p className="text-sm font-medium text-gray-900 dark:text-white">
+                  <div className="absolute right-0 mt-2 w-56 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-elevated)] py-1 shadow-xl">
+                    <div className="border-b border-[var(--color-border)] px-4 py-3">
+                      <p className="text-sm font-medium text-[var(--color-text)]">
                         {user?.name ?? "User"}
                       </p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">{user?.email}</p>
+                      <p className="text-xs text-[var(--color-text-muted)]">{user?.email}</p>
                     </div>
                     <Link
                       to="/dashboard"
                       onClick={() => setDropdownOpen(false)}
-                      className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-700"
+                      className="flex items-center px-4 py-2.5 text-sm text-[var(--color-text-muted)] transition-colors hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text)]"
                     >
                       <LayoutDashboard className="mr-2 h-4 w-4" />
                       Dashboard
@@ -81,7 +81,7 @@ export function RootLayout() {
                     <button
                       onClick={handleLogout}
                       disabled={isLoggingOut}
-                      className="flex w-full items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 disabled:opacity-50 dark:text-gray-200 dark:hover:bg-gray-700"
+                      className="flex w-full items-center px-4 py-2.5 text-sm text-[var(--color-text-muted)] transition-colors hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text)] disabled:opacity-50"
                     >
                       <LogOut className="mr-2 h-4 w-4" />
                       {isLoggingOut ? "Logging out..." : "Log out"}
@@ -93,13 +93,13 @@ export function RootLayout() {
               <>
                 <Link
                   to="/login"
-                  className="rounded-lg px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-800"
+                  className="rounded-xl px-4 py-2.5 text-sm font-medium text-[var(--color-text-muted)] transition-colors hover:bg-[var(--color-surface-elevated)] hover:text-[var(--color-text)]"
                 >
                   Sign in
                 </Link>
                 <Link
                   to="/register"
-                  className="rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-100"
+                  className="rounded-xl bg-[var(--color-accent)] px-5 py-2.5 text-sm font-semibold text-[var(--color-surface)] transition-all hover:bg-[var(--color-accent-hover)] hover:shadow-lg hover:shadow-[var(--color-accent)]/20"
                 >
                   Get started
                 </Link>
