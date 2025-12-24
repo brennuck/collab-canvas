@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect } from "react";
 import { Outlet, Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/use-auth";
-import { Pen, LogOut, LayoutDashboard, ChevronDown } from "lucide-react";
+import { LogOut, LayoutDashboard, ChevronDown } from "lucide-react";
+import { Logo } from "@/components/logo";
 
 export function RootLayout() {
   const { user, isAuthenticated, logout, isLoggingOut } = useAuth();
@@ -42,10 +43,8 @@ export function RootLayout() {
     <div className="min-h-screen bg-[var(--color-surface)]">
       <header className="sticky top-0 z-50 w-full border-b border-[var(--color-border)] bg-[var(--color-surface)]/95 backdrop-blur">
         <div className="mx-auto flex h-16 max-w-7xl items-center px-4 sm:px-6 lg:px-8">
-          <Link to="/" className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-[var(--color-accent)] to-[var(--color-tertiary)]">
-              <Pen className="h-4 w-4 text-white" />
-            </div>
+          <Link to="/" className="logo-hover flex items-center gap-2.5">
+            <Logo size="sm" />
             <span className="text-lg font-bold text-[var(--color-text)]">CollabCanvas</span>
           </Link>
 

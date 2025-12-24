@@ -158,3 +158,108 @@ kbd {
   opacity: 0.03;
   pointer-events: none;
 }
+
+/* ========== Logo Animations ========== */
+
+/* Wiggle animation for sticky note */
+@keyframes wiggle {
+  0%, 100% {
+    transform: rotate(6deg);
+  }
+  25% {
+    transform: rotate(8deg) scale(1.02);
+  }
+  75% {
+    transform: rotate(4deg) scale(0.98);
+  }
+}
+
+.animate-wiggle {
+  transform-origin: center center;
+  animation: wiggle 3s ease-in-out infinite;
+}
+
+/* Squiggle line drawing animation */
+@keyframes squiggle {
+  0%, 100% {
+    stroke-dashoffset: 0;
+  }
+  50% {
+    stroke-dashoffset: 10;
+  }
+}
+
+.animate-squiggle {
+  stroke-dasharray: 5 3;
+  animation: squiggle 2s ease-in-out infinite;
+}
+
+/* Cursor 1 movement */
+@keyframes cursor-move-1 {
+  0%, 100% {
+    transform: translate(0, 0);
+  }
+  25% {
+    transform: translate(2px, -1px);
+  }
+  50% {
+    transform: translate(3px, 1px);
+  }
+  75% {
+    transform: translate(1px, 2px);
+  }
+}
+
+.animate-cursor-1 {
+  animation: cursor-move-1 4s ease-in-out infinite;
+}
+
+/* Cursor 2 movement */
+@keyframes cursor-move-2 {
+  0%, 100% {
+    transform: translate(0, 0);
+  }
+  25% {
+    transform: translate(-1px, 2px);
+  }
+  50% {
+    transform: translate(1px, 3px);
+  }
+  75% {
+    transform: translate(2px, 1px);
+  }
+}
+
+.animate-cursor-2 {
+  animation: cursor-move-2 5s ease-in-out infinite;
+  animation-delay: 0.5s;
+}
+
+/* Subtle pulse for accent circle */
+@keyframes pulse-subtle {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.7;
+    transform: scale(0.9);
+  }
+}
+
+.animate-pulse-subtle {
+  animation: pulse-subtle 2s ease-in-out infinite;
+}
+
+/* Logo hover effect */
+.logo-hover:hover .animate-wiggle {
+  animation-duration: 0.5s;
+}
+
+.logo-hover:hover .animate-cursor-1 {
+  animation-duration: 1s;
+}
+
+.logo-hover:hover .animate-cursor-2 {
+  animation-duration: 1.2s;
+}

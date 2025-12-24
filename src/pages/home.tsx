@@ -103,7 +103,7 @@ function CanvasPreview() {
         </div>
 
         {/* Canvas area */}
-        <div className="relative aspect-[16/10] overflow-hidden rounded-b-xl bg-[#0d0d14] bg-grid">
+        <div className="bg-grid relative aspect-[16/10] overflow-hidden rounded-b-xl bg-[#0d0d14]">
           {/* Decorative elements on canvas */}
 
           {/* Sticky note 1 */}
@@ -125,11 +125,7 @@ function CanvasPreview() {
           </div>
 
           {/* Drawing path */}
-          <svg
-            className="absolute inset-0 h-full w-full"
-            viewBox="0 0 800 500"
-            fill="none"
-          >
+          <svg className="absolute inset-0 h-full w-full" viewBox="0 0 800 500" fill="none">
             <path
               d="M150 280 Q 200 250, 280 290 T 400 270 T 520 300"
               stroke="var(--color-accent)"
@@ -149,9 +145,7 @@ function CanvasPreview() {
 
           {/* Text box */}
           <div className="animate-float-delayed absolute bottom-[25%] left-[10%] rounded-lg border-2 border-dashed border-[var(--color-accent)] bg-[var(--color-accent-muted)] px-4 py-2">
-            <p className="text-sm font-medium text-[var(--color-accent)]">
-              Project Roadmap
-            </p>
+            <p className="text-sm font-medium text-[var(--color-accent)]">Project Roadmap</p>
           </div>
 
           {/* Live cursors */}
@@ -164,10 +158,7 @@ function CanvasPreview() {
                 fill="none"
                 className="drop-shadow-lg"
               >
-                <path
-                  d="M0 0L16 12L8 12L4 20L0 0Z"
-                  fill="var(--color-secondary)"
-                />
+                <path d="M0 0L16 12L8 12L4 20L0 0Z" fill="var(--color-secondary)" />
               </svg>
               <span className="rounded-full bg-[var(--color-secondary)] px-2 py-0.5 text-[10px] font-medium text-white">
                 Sarah
@@ -184,10 +175,7 @@ function CanvasPreview() {
                 fill="none"
                 className="drop-shadow-lg"
               >
-                <path
-                  d="M0 0L16 12L8 12L4 20L0 0Z"
-                  fill="var(--color-tertiary)"
-                />
+                <path d="M0 0L16 12L8 12L4 20L0 0Z" fill="var(--color-tertiary)" />
               </svg>
               <span className="rounded-full bg-[var(--color-tertiary)] px-2 py-0.5 text-[10px] font-medium text-white">
                 Mike
@@ -253,15 +241,15 @@ export function HomePage() {
             </h1>
 
             <p className="animate-fade-up animation-delay-200 mt-6 max-w-2xl text-lg text-[var(--color-text-muted)] md:text-xl">
-              A collaborative whiteboard for brainstorming, sketching, and
-              planning—powered by AI to make your ideas smarter.
+              A collaborative whiteboard for brainstorming, sketching, and planning—powered by AI to
+              make your ideas smarter.
             </p>
 
             <div className="animate-fade-up animation-delay-300 mt-10 flex flex-col gap-4 sm:flex-row">
               {isAuthenticated ? (
                 <Link
                   to="/dashboard"
-                  className="group inline-flex items-center justify-center gap-2 rounded-xl bg-[var(--color-accent)] px-8 py-4 text-base font-semibold text-[var(--color-surface)] transition-all hover:bg-[var(--color-accent-hover)] hover:shadow-lg hover:shadow-[var(--color-accent)]/25"
+                  className="hover:shadow-[var(--color-accent)]/25 group inline-flex items-center justify-center gap-2 rounded-xl bg-[var(--color-accent)] px-8 py-4 text-base font-semibold text-[var(--color-surface)] transition-all hover:bg-[var(--color-accent-hover)] hover:shadow-lg"
                 >
                   Go to Dashboard
                   <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-0.5" />
@@ -270,7 +258,7 @@ export function HomePage() {
                 <>
                   <Link
                     to="/register"
-                    className="group inline-flex items-center justify-center gap-2 rounded-xl bg-[var(--color-accent)] px-8 py-4 text-base font-semibold text-[var(--color-surface)] transition-all hover:bg-[var(--color-accent-hover)] hover:shadow-lg hover:shadow-[var(--color-accent)]/25"
+                    className="hover:shadow-[var(--color-accent)]/25 group inline-flex items-center justify-center gap-2 rounded-xl bg-[var(--color-accent)] px-8 py-4 text-base font-semibold text-[var(--color-surface)] transition-all hover:bg-[var(--color-accent-hover)] hover:shadow-lg"
                   >
                     Start for free
                     <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-0.5" />
@@ -298,12 +286,10 @@ export function HomePage() {
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="mx-auto mb-16 max-w-2xl text-center">
             <h2 className="text-3xl font-bold tracking-tight sm:text-4xl md:text-5xl">
-              Everything you need to{" "}
-              <span className="text-[var(--color-accent)]">collaborate</span>
+              Everything you need to <span className="text-[var(--color-accent)]">collaborate</span>
             </h2>
             <p className="mt-4 text-lg text-[var(--color-text-muted)]">
-              All the tools for visual thinking, from quick sketches to complex
-              diagrams.
+              All the tools for visual thinking, from quick sketches to complex diagrams.
             </p>
           </div>
 
@@ -311,18 +297,14 @@ export function HomePage() {
             {features.map((feature, i) => (
               <div
                 key={feature.title}
-                className={`animate-fade-up group rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-elevated)] p-6 transition-all hover:border-[var(--color-text-muted)]/30 hover:bg-[var(--color-surface-hover)]`}
+                className={`animate-fade-up hover:border-[var(--color-text-muted)]/30 group rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-elevated)] p-6 transition-all hover:bg-[var(--color-surface-hover)]`}
                 style={{ animationDelay: `${i * 0.1}s` }}
               >
-                <div
-                  className={`mb-4 inline-flex rounded-xl ${feature.bgColor} p-3`}
-                >
+                <div className={`mb-4 inline-flex rounded-xl ${feature.bgColor} p-3`}>
                   <feature.icon className={`h-6 w-6 ${feature.color}`} />
                 </div>
                 <h3 className="mb-2 text-lg font-semibold">{feature.title}</h3>
-                <p className="text-sm text-[var(--color-text-muted)]">
-                  {feature.description}
-                </p>
+                <p className="text-sm text-[var(--color-text-muted)]">{feature.description}</p>
               </div>
             ))}
           </div>
@@ -336,18 +318,15 @@ export function HomePage() {
 
         <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="mx-auto mb-16 max-w-2xl text-center">
-            <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-[var(--color-accent)]/30 bg-[var(--color-accent-muted)] px-4 py-2">
+            <div className="border-[var(--color-accent)]/30 mb-4 inline-flex items-center gap-2 rounded-full border bg-[var(--color-accent-muted)] px-4 py-2">
               <Sparkles className="h-4 w-4 text-[var(--color-accent)]" />
-              <span className="text-sm font-medium text-[var(--color-accent)]">
-                AI-Powered
-              </span>
+              <span className="text-sm font-medium text-[var(--color-accent)]">AI-Powered</span>
             </div>
             <h2 className="text-3xl font-bold tracking-tight sm:text-4xl md:text-5xl">
               Supercharge your creativity
             </h2>
             <p className="mt-4 text-lg text-[var(--color-text-muted)]">
-              Let AI handle the heavy lifting while you focus on the big
-              picture.
+              Let AI handle the heavy lifting while you focus on the big picture.
             </p>
           </div>
 
@@ -355,16 +334,14 @@ export function HomePage() {
             {aiFeatures.map((feature, i) => (
               <div
                 key={feature.title}
-                className={`animate-fade-up relative rounded-2xl border border-[var(--color-accent)]/20 bg-gradient-to-b from-[var(--color-surface-elevated)] to-[var(--color-surface)] p-8`}
+                className={`animate-fade-up border-[var(--color-accent)]/20 relative rounded-2xl border bg-gradient-to-b from-[var(--color-surface-elevated)] to-[var(--color-surface)] p-8`}
                 style={{ animationDelay: `${i * 0.15}s` }}
               >
                 <div className="mb-6 inline-flex rounded-2xl bg-gradient-to-br from-[var(--color-accent)] to-[var(--color-tertiary)] p-4">
                   <feature.icon className="h-7 w-7 text-white" />
                 </div>
                 <h3 className="mb-3 text-xl font-semibold">{feature.title}</h3>
-                <p className="text-[var(--color-text-muted)]">
-                  {feature.description}
-                </p>
+                <p className="text-[var(--color-text-muted)]">{feature.description}</p>
               </div>
             ))}
           </div>
@@ -396,7 +373,7 @@ export function HomePage() {
                 {isAuthenticated ? (
                   <Link
                     to="/dashboard"
-                    className="group inline-flex items-center justify-center gap-2 rounded-xl bg-[var(--color-accent)] px-8 py-4 text-base font-semibold text-[var(--color-surface)] transition-all hover:bg-[var(--color-accent-hover)] hover:shadow-lg hover:shadow-[var(--color-accent)]/25"
+                    className="hover:shadow-[var(--color-accent)]/25 group inline-flex items-center justify-center gap-2 rounded-xl bg-[var(--color-accent)] px-8 py-4 text-base font-semibold text-[var(--color-surface)] transition-all hover:bg-[var(--color-accent-hover)] hover:shadow-lg"
                   >
                     Open Dashboard
                     <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-0.5" />
@@ -405,7 +382,7 @@ export function HomePage() {
                   <>
                     <Link
                       to="/register"
-                      className="group inline-flex items-center justify-center gap-2 rounded-xl bg-[var(--color-accent)] px-8 py-4 text-base font-semibold text-[var(--color-surface)] transition-all hover:bg-[var(--color-accent-hover)] hover:shadow-lg hover:shadow-[var(--color-accent)]/25"
+                      className="hover:shadow-[var(--color-accent)]/25 group inline-flex items-center justify-center gap-2 rounded-xl bg-[var(--color-accent)] px-8 py-4 text-base font-semibold text-[var(--color-surface)] transition-all hover:bg-[var(--color-accent-hover)] hover:shadow-lg"
                     >
                       Get started free
                       <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-0.5" />
@@ -425,19 +402,19 @@ export function HomePage() {
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-[var(--color-border)] py-8">
+      <footer className="border-t border-[var(--color-border)] py-6">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
-            <div className="flex items-center gap-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-[var(--color-accent)] to-[var(--color-tertiary)]">
-                <Pen className="h-4 w-4 text-white" />
-              </div>
-              <span className="font-bold">CollabCanvas</span>
-            </div>
-            <p className="text-sm text-[var(--color-text-muted)]">
-              © 2025 CollabCanvas. Built for creative teams.
-            </p>
-          </div>
+          <p className="text-center text-sm text-[var(--color-text-muted)]">
+            Made with ✨ by{" "}
+            <a
+              href="https://bnuckols.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-medium text-[var(--color-accent)] transition-colors hover:text-[var(--color-accent-hover)] hover:underline"
+            >
+              Brennon
+            </a>
+          </p>
         </div>
       </footer>
     </div>
