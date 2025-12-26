@@ -41,9 +41,12 @@ export function RootLayout() {
 
   return (
     <div className="min-h-screen bg-[var(--color-surface)]">
-      <header className="sticky top-0 z-50 w-full border-b border-[var(--color-border)] bg-[var(--color-surface)]/95 backdrop-blur">
+      <header className="bg-[var(--color-surface)]/95 sticky top-0 z-50 w-full border-b border-[var(--color-border)] backdrop-blur">
         <div className="mx-auto flex h-16 max-w-7xl items-center px-4 sm:px-6 lg:px-8">
-          <Link to="/" className="logo-hover flex items-center gap-2.5">
+          <Link
+            to={isAuthenticated ? "/dashboard" : "/"}
+            className="logo-hover flex items-center gap-2.5"
+          >
             <Logo size="sm" />
             <span className="text-lg font-bold text-[var(--color-text)]">CollabCanvas</span>
           </Link>
@@ -107,7 +110,7 @@ export function RootLayout() {
                 </Link>
                 <Link
                   to="/register"
-                  className="rounded-xl bg-[var(--color-accent)] px-5 py-2.5 text-sm font-semibold text-[var(--color-surface)] transition-all hover:bg-[var(--color-accent-hover)] hover:shadow-lg hover:shadow-[var(--color-accent)]/20"
+                  className="hover:shadow-[var(--color-accent)]/20 rounded-xl bg-[var(--color-accent)] px-5 py-2.5 text-sm font-semibold text-[var(--color-surface)] transition-all hover:bg-[var(--color-accent-hover)] hover:shadow-lg"
                 >
                   Get started
                 </Link>
