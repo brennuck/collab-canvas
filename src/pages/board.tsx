@@ -1,9 +1,9 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/hooks/use-auth";
-import { useLiveCursors } from "@/hooks/use-live-cursors";
-import { Canvas, type Tool, type CanvasRef } from "@/components/canvas/canvas";
+import { useLiveCursors, type SyncElement } from "@/hooks/use-live-cursors";
+import { Canvas, type Tool, type CanvasRef, type CanvasElement } from "@/components/canvas/canvas";
 import { ToolsSidebar, tools } from "@/components/canvas/tools-sidebar";
 import { BoardHeader } from "@/components/canvas/board-header";
 import { StyleToolbar } from "@/components/canvas/style-toolbar";
@@ -36,12 +36,42 @@ export function BoardPage() {
   // Canvas offset for live cursors (updated from ref)
   const [canvasOffset, setCanvasOffset] = useState({ x: 0, y: 0 });
 
-  // Live cursors
-  const { cursors, updateCursor, isConnected, onlineUserIds, onlineCount } = useLiveCursors({
+  // Handlers for receiving remote element changes
+  const handleRemoteElementAdded = useCallback((element: SyncElement) => {
+    canvasRef.current?.handleRemoteElementAdd(element as CanvasElement);
+  }, []);
+
+  const handleRemoteElementUpdated = useCallback((element: SyncElement) => {
+    canvasRef.current?.handleRemoteElementUpdate(element as CanvasElement);
+  }, []);
+
+  const handleRemoteElementDeleted = useCallback((elementId: string) => {
+    canvasRef.current?.handleRemoteElementDelete(elementId);
+  }, []);
+
+  const handleRemoteElementsSynced = useCallback((elements: SyncElement[]) => {
+    canvasRef.current?.handleRemoteElementsSync(elements as CanvasElement[]);
+  }, []);
+
+  // Live cursors with element sync
+  const {
+    cursors,
+    updateCursor,
+    isConnected,
+    onlineUserIds,
+    onlineCount,
+    broadcastElementAdd,
+    broadcastElementUpdate,
+    broadcastElementDelete,
+  } = useLiveCursors({
     boardId: id || "",
     userId: user?.id || null,
     userName: user?.name || user?.email || "Anonymous",
     enabled: !!id,
+    onElementAdded: handleRemoteElementAdded,
+    onElementUpdated: handleRemoteElementUpdated,
+    onElementDeleted: handleRemoteElementDeleted,
+    onElementsSynced: handleRemoteElementsSynced,
   });
 
   // Modal states
@@ -272,6 +302,9 @@ export function BoardPage() {
           onSavingChange={setIsSaving}
           onCursorMove={updateCursor}
           readOnly={!canEdit}
+          onElementAdd={broadcastElementAdd}
+          onElementUpdate={broadcastElementUpdate}
+          onElementDelete={broadcastElementDelete}
         />
 
         {/* Live cursors overlay */}

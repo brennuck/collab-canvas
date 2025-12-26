@@ -98,6 +98,30 @@ io.on("connection", (socket) => {
     socket.to(`board:${currentBoardId}`).emit("cursor-update", cursorData);
   });
 
+  // Element added
+  socket.on("element-add", (element: unknown) => {
+    if (!currentBoardId) return;
+    socket.to(`board:${currentBoardId}`).emit("element-added", element);
+  });
+
+  // Element updated (moved, resized, etc.)
+  socket.on("element-update", (element: unknown) => {
+    if (!currentBoardId) return;
+    socket.to(`board:${currentBoardId}`).emit("element-updated", element);
+  });
+
+  // Element deleted
+  socket.on("element-delete", (elementId: string) => {
+    if (!currentBoardId) return;
+    socket.to(`board:${currentBoardId}`).emit("element-deleted", elementId);
+  });
+
+  // Batch elements sync (for undo/redo)
+  socket.on("elements-sync", (elements: unknown[]) => {
+    if (!currentBoardId) return;
+    socket.to(`board:${currentBoardId}`).emit("elements-synced", elements);
+  });
+
   // Leave board
   socket.on("leave-board", () => {
     if (currentBoardId && odId) {

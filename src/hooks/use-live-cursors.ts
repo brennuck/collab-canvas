@@ -9,11 +9,21 @@ export interface CursorData {
   y: number;
 }
 
+// Generic element type for syncing
+export interface SyncElement {
+  id: string;
+  [key: string]: unknown;
+}
+
 interface UseLiveCursorsProps {
   boardId: string;
   userId: string | null;
   userName: string;
   enabled?: boolean;
+  onElementAdded?: (element: SyncElement) => void;
+  onElementUpdated?: (element: SyncElement) => void;
+  onElementDeleted?: (elementId: string) => void;
+  onElementsSynced?: (elements: SyncElement[]) => void;
 }
 
 // Generate a consistent color based on user ID
@@ -48,11 +58,19 @@ export function useLiveCursors({
   userId,
   userName,
   enabled = true,
+  onElementAdded,
+  onElementUpdated,
+  onElementDeleted,
+  onElementsSynced,
 }: UseLiveCursorsProps) {
   const [cursors, setCursors] = useState<Map<string, CursorData>>(new Map());
   const [isConnected, setIsConnected] = useState(false);
   const socketRef = useRef<Socket | null>(null);
   const userColor = userId ? generateUserColor(userId) : "#3b82f6";
+
+  // Store callbacks in refs to avoid reconnecting when they change
+  const callbacksRef = useRef({ onElementAdded, onElementUpdated, onElementDeleted, onElementsSynced });
+  callbacksRef.current = { onElementAdded, onElementUpdated, onElementDeleted, onElementsSynced };
 
   // Generate stable anonymous ID
   const anonIdRef = useRef(`anon_${Math.random().toString(36).substr(2, 9)}`);
@@ -117,6 +135,23 @@ export function useLiveCursors({
       });
     });
 
+    // Element sync events
+    socket.on("element-added", (element: SyncElement) => {
+      callbacksRef.current.onElementAdded?.(element);
+    });
+
+    socket.on("element-updated", (element: SyncElement) => {
+      callbacksRef.current.onElementUpdated?.(element);
+    });
+
+    socket.on("element-deleted", (elementId: string) => {
+      callbacksRef.current.onElementDeleted?.(elementId);
+    });
+
+    socket.on("elements-synced", (elements: SyncElement[]) => {
+      callbacksRef.current.onElementsSynced?.(elements);
+    });
+
     return () => {
       socket.emit("leave-board");
       socket.disconnect();
@@ -126,19 +161,41 @@ export function useLiveCursors({
 
   // Send cursor position (throttled)
   const lastSentRef = useRef<number>(0);
-  const updateCursor = useCallback(
-    (x: number, y: number) => {
-      const now = Date.now();
-      // Throttle to ~30fps (33ms)
-      if (now - lastSentRef.current < 33) return;
-      lastSentRef.current = now;
+  const updateCursor = useCallback((x: number, y: number) => {
+    const now = Date.now();
+    // Throttle to ~30fps (33ms)
+    if (now - lastSentRef.current < 33) return;
+    lastSentRef.current = now;
 
-      if (socketRef.current?.connected) {
-        socketRef.current.emit("cursor-move", { x, y });
-      }
-    },
-    []
-  );
+    if (socketRef.current?.connected) {
+      socketRef.current.emit("cursor-move", { x, y });
+    }
+  }, []);
+
+  // Broadcast element changes
+  const broadcastElementAdd = useCallback((element: SyncElement) => {
+    if (socketRef.current?.connected) {
+      socketRef.current.emit("element-add", element);
+    }
+  }, []);
+
+  const broadcastElementUpdate = useCallback((element: SyncElement) => {
+    if (socketRef.current?.connected) {
+      socketRef.current.emit("element-update", element);
+    }
+  }, []);
+
+  const broadcastElementDelete = useCallback((elementId: string) => {
+    if (socketRef.current?.connected) {
+      socketRef.current.emit("element-delete", elementId);
+    }
+  }, []);
+
+  const broadcastElementsSync = useCallback((elements: SyncElement[]) => {
+    if (socketRef.current?.connected) {
+      socketRef.current.emit("elements-sync", elements);
+    }
+  }, []);
 
   // Get all online user IDs (including self)
   const onlineUserIds = new Set(Array.from(cursors.keys()));
@@ -153,6 +210,11 @@ export function useLiveCursors({
     userColor,
     onlineCount: onlineUserIds.size,
     onlineUserIds,
+    // Element sync
+    broadcastElementAdd,
+    broadcastElementUpdate,
+    broadcastElementDelete,
+    broadcastElementsSync,
   };
 }
 

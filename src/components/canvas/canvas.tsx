@@ -46,6 +46,10 @@ interface CanvasProps {
   onSavingChange?: (isSaving: boolean) => void;
   onCursorMove?: (x: number, y: number) => void;
   readOnly?: boolean;
+  // Real-time sync
+  onElementAdd?: (element: CanvasElement) => void;
+  onElementUpdate?: (element: CanvasElement) => void;
+  onElementDelete?: (elementId: string) => void;
 }
 
 export interface CanvasRef {
@@ -55,6 +59,11 @@ export interface CanvasRef {
   canRedo: boolean;
   offset: { x: number; y: number };
   zoom: number;
+  // Remote sync methods
+  handleRemoteElementAdd: (element: CanvasElement) => void;
+  handleRemoteElementUpdate: (element: CanvasElement) => void;
+  handleRemoteElementDelete: (elementId: string) => void;
+  handleRemoteElementsSync: (elements: CanvasElement[]) => void;
 }
 
 export const Canvas = forwardRef<CanvasRef, CanvasProps>(function Canvas(
@@ -68,6 +77,9 @@ export const Canvas = forwardRef<CanvasRef, CanvasProps>(function Canvas(
     onSavingChange,
     onCursorMove,
     readOnly = false,
+    onElementAdd,
+    onElementUpdate,
+    onElementDelete,
   },
   ref
 ) {
@@ -215,7 +227,28 @@ export const Canvas = forwardRef<CanvasRef, CanvasProps>(function Canvas(
     }
   }, [historyIndex, history, saveToDatabase]);
 
-  // Expose undo/redo via ref
+  // Remote sync handlers - receive changes from other users
+  const handleRemoteElementAdd = useCallback((element: CanvasElement) => {
+    setElements((prev) => {
+      // Don't add if already exists
+      if (prev.some((el) => el.id === element.id)) return prev;
+      return [...prev, element];
+    });
+  }, []);
+
+  const handleRemoteElementUpdate = useCallback((element: CanvasElement) => {
+    setElements((prev) => prev.map((el) => (el.id === element.id ? element : el)));
+  }, []);
+
+  const handleRemoteElementDelete = useCallback((elementId: string) => {
+    setElements((prev) => prev.filter((el) => el.id !== elementId));
+  }, []);
+
+  const handleRemoteElementsSync = useCallback((newElements: CanvasElement[]) => {
+    setElements(newElements);
+  }, []);
+
+  // Expose undo/redo and remote sync via ref
   useImperativeHandle(
     ref,
     () => ({
@@ -225,8 +258,23 @@ export const Canvas = forwardRef<CanvasRef, CanvasProps>(function Canvas(
       canRedo: historyIndex < history.length - 1,
       offset,
       zoom,
+      handleRemoteElementAdd,
+      handleRemoteElementUpdate,
+      handleRemoteElementDelete,
+      handleRemoteElementsSync,
     }),
-    [undo, redo, historyIndex, history.length, offset, zoom]
+    [
+      undo,
+      redo,
+      historyIndex,
+      history.length,
+      offset,
+      zoom,
+      handleRemoteElementAdd,
+      handleRemoteElementUpdate,
+      handleRemoteElementDelete,
+      handleRemoteElementsSync,
+    ]
   );
 
   // Get mouse position relative to canvas with zoom and offset
@@ -616,6 +664,8 @@ export const Canvas = forwardRef<CanvasRef, CanvasProps>(function Canvas(
         const newElements = elements.filter((el) => el.id !== clickedElement.id);
         setElements(newElements);
         pushToHistory(newElements);
+        // Broadcast delete to other users
+        onElementDelete?.(clickedElement.id);
       }
       return;
     }
@@ -759,9 +809,14 @@ export const Canvas = forwardRef<CanvasRef, CanvasProps>(function Canvas(
     }
 
     // Finish dragging - save to history
-    if (isDragging) {
+    if (isDragging && selectedId) {
       setIsDragging(false);
       pushToHistory(elements);
+      // Broadcast the updated element position
+      const updatedElement = elements.find((el) => el.id === selectedId);
+      if (updatedElement) {
+        onElementUpdate?.(updatedElement);
+      }
       return;
     }
 
@@ -769,6 +824,8 @@ export const Canvas = forwardRef<CanvasRef, CanvasProps>(function Canvas(
       const newElements = [...elements, currentElement];
       setElements(newElements);
       pushToHistory(newElements);
+      // Broadcast new element to other users
+      onElementAdd?.(currentElement);
       setCurrentElement(null);
     }
 
@@ -850,6 +907,8 @@ export const Canvas = forwardRef<CanvasRef, CanvasProps>(function Canvas(
     const newElements = [...elements, newElement];
     setElements(newElements);
     pushToHistory(newElements);
+    // Broadcast new element to other users
+    onElementAdd?.(newElement);
     setTextInput({ x: 0, y: 0, visible: false });
     setTextValue("");
   };
@@ -886,6 +945,8 @@ export const Canvas = forwardRef<CanvasRef, CanvasProps>(function Canvas(
     const newElements = [...elements, newElement];
     setElements(newElements);
     pushToHistory(newElements);
+    // Broadcast new element to other users
+    onElementAdd?.(newElement);
     setCardInput({ x: 0, y: 0, visible: false });
     setCardHeader("");
     setCardDescription("");
