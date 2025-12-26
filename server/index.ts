@@ -1,3 +1,4 @@
+import "dotenv/config";
 import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
@@ -25,7 +26,7 @@ const createContext = async ({
 }): Promise<Context> => {
   // Get session from cookie
   const sessionId = lucia.readSessionCookie(req.headers.cookie ?? "");
-  
+
   if (!sessionId) {
     return { req, res, db, session: null, user: null };
   }
@@ -64,4 +65,3 @@ app.listen(port, () => {
   console.log(`🚀 Server running at http://localhost:${port}`);
   console.log(`📡 tRPC endpoint: http://localhost:${port}/api/trpc`);
 });
-

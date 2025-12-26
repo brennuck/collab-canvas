@@ -34,6 +34,7 @@
     "clsx": "^2.1.1",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
+    "dotenv": "^17.2.3",
     "express": "^4.21.2",
     "lucia": "^3.2.2",
     "lucide-react": "^0.468.0",
