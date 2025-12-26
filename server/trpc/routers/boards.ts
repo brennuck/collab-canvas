@@ -1,10 +1,10 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { router, protectedProcedure } from "../trpc";
+import { router, protectedProcedure, publicProcedure } from "../trpc";
 
 export const boardsRouter = router({
-  // Get a single board by ID
-  get: protectedProcedure.input(z.object({ id: z.string() })).query(async ({ ctx, input }) => {
+  // Get a single board by ID (public access for public boards)
+  get: publicProcedure.input(z.object({ id: z.string() })).query(async ({ ctx, input }) => {
     const board = await ctx.db.boards.findUnique({
       where: { id: input.id },
       include: {
@@ -21,21 +21,34 @@ export const boardsRouter = router({
       throw new TRPCError({ code: "NOT_FOUND", message: "Board not found" });
     }
 
-    // Check if user has access (owner or member)
-    const isOwner = board.owner_id === ctx.user.id;
-    const isMember = board.members.some((m) => m.user_id === ctx.user.id);
+    const userId = ctx.user?.id;
+    const isOwner = userId ? board.owner_id === userId : false;
+    const isMember = userId ? board.members.some((m) => m.user_id === userId) : false;
 
-    if (!isOwner && !isMember) {
+    // If board is private, require authentication and membership
+    if (!board.is_public && !isOwner && !isMember) {
+      if (!userId) {
+        throw new TRPCError({
+          code: "UNAUTHORIZED",
+          message: "Please sign in to access this private board",
+        });
+      }
       throw new TRPCError({
         code: "FORBIDDEN",
-        message: "You don't have access to this board",
+        message: "This board is private. You need an invite to access it.",
       });
     }
 
     // Get user's role
-    const userRole = isOwner
-      ? "owner"
-      : (board.members.find((m) => m.user_id === ctx.user.id)?.role ?? "viewer");
+    let userRole: string;
+    if (isOwner) {
+      userRole = "owner";
+    } else if (isMember) {
+      userRole = board.members.find((m) => m.user_id === userId)?.role ?? "viewer";
+    } else {
+      // Public board, non-member viewer
+      userRole = "viewer";
+    }
 
     return {
       id: board.id,
@@ -59,6 +72,7 @@ export const boardsRouter = router({
       })),
       userRole,
       isOwner,
+      isAuthenticated: !!userId,
     };
   }),
 
@@ -123,6 +137,7 @@ export const boardsRouter = router({
     .input(
       z.object({
         name: z.string().min(1, "Name is required").max(100),
+        isPublic: z.boolean().default(true),
       })
     )
     .mutation(async ({ ctx, input }) => {
@@ -130,6 +145,7 @@ export const boardsRouter = router({
         data: {
           name: input.name,
           owner_id: ctx.user.id,
+          is_public: input.isPublic,
         },
       });
 
@@ -167,6 +183,44 @@ export const boardsRouter = router({
       });
 
       return updated;
+    }),
+
+  // Update board settings (visibility, etc.)
+  updateSettings: protectedProcedure
+    .input(
+      z.object({
+        id: z.string(),
+        isPublic: z.boolean().optional(),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      // Check if user owns the board
+      const board = await ctx.db.boards.findUnique({
+        where: { id: input.id },
+      });
+
+      if (!board) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Board not found" });
+      }
+
+      if (board.owner_id !== ctx.user.id) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Only the owner can update board settings",
+        });
+      }
+
+      const updated = await ctx.db.boards.update({
+        where: { id: input.id },
+        data: {
+          is_public: input.isPublic ?? board.is_public,
+        },
+      });
+
+      return {
+        id: updated.id,
+        isPublic: updated.is_public,
+      };
     }),
 
   // Delete a board

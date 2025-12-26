@@ -41,6 +41,7 @@ interface CanvasProps {
   zoom: number;
   onZoomChange: (zoom: number) => void;
   onSavingChange?: (isSaving: boolean) => void;
+  readOnly?: boolean;
 }
 
 export interface CanvasRef {
@@ -51,7 +52,7 @@ export interface CanvasRef {
 }
 
 export const Canvas = forwardRef<CanvasRef, CanvasProps>(function Canvas(
-  { boardId, activeTool, color, strokeWidth, zoom, onZoomChange, onSavingChange },
+  { boardId, activeTool, color, strokeWidth, zoom, onZoomChange, onSavingChange, readOnly = false },
   ref
 ) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -438,11 +439,15 @@ export const Canvas = forwardRef<CanvasRef, CanvasProps>(function Canvas(
   const handleMouseDown = (e: React.MouseEvent) => {
     const point = getCanvasPoint(e);
 
+    // Pan is always allowed (even in readOnly mode)
     if (activeTool === "pan") {
       setIsPanning(true);
       setPanStart({ x: e.clientX - offset.x, y: e.clientY - offset.y });
       return;
     }
+
+    // Block all other interactions in readOnly mode
+    if (readOnly) return;
 
     if (activeTool === "select") {
       // Find element at click position

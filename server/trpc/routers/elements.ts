@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { router, protectedProcedure } from "../trpc";
+import { router, protectedProcedure, publicProcedure } from "../trpc";
 import { TRPCError } from "@trpc/server";
 
 // Zod schema for element content based on type
@@ -32,23 +32,30 @@ const dbTypeMap = {
 } as const;
 
 export const elementsRouter = router({
-  // Get all elements for a board
-  list: protectedProcedure
+  // Get all elements for a board (public access for public boards)
+  list: publicProcedure
     .input(z.object({ boardId: z.string() }))
     .query(async ({ ctx, input }) => {
-      // Verify user has access to board
-      const board = await ctx.db.boards.findFirst({
-        where: {
-          id: input.boardId,
-          OR: [
-            { owner_id: ctx.user.id },
-            { members: { some: { user_id: ctx.user.id } } },
-          ],
+      const userId = ctx.user?.id;
+
+      // Find the board
+      const board = await ctx.db.boards.findUnique({
+        where: { id: input.boardId },
+        include: {
+          members: { select: { user_id: true } },
         },
       });
 
       if (!board) {
         throw new TRPCError({ code: "NOT_FOUND", message: "Board not found" });
+      }
+
+      // Check access: public boards are viewable by anyone
+      const isOwner = userId ? board.owner_id === userId : false;
+      const isMember = userId ? board.members.some((m) => m.user_id === userId) : false;
+
+      if (!board.is_public && !isOwner && !isMember) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Access denied" });
       }
 
       const elements = await ctx.db.elements.findMany({

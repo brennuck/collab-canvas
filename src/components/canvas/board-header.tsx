@@ -39,6 +39,7 @@ interface BoardHeaderProps {
   onShare?: () => void;
   onExport?: () => void;
   onDelete?: () => void;
+  onSettings?: () => void;
   canUndo?: boolean;
   canRedo?: boolean;
   onUndo?: () => void;
@@ -59,6 +60,7 @@ export function BoardHeader({
   onShare,
   onExport,
   onDelete,
+  onSettings,
   canUndo = false,
   canRedo = false,
   onUndo,
@@ -288,6 +290,7 @@ export function BoardHeader({
                     <div className="my-1 h-px bg-[var(--color-border)]" />
                     <button
                       onClick={() => {
+                        onSettings?.();
                         setMenuOpen(false);
                       }}
                       className="flex w-full items-center gap-2 px-3 py-2 text-sm text-[var(--color-text-muted)] hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text)]"

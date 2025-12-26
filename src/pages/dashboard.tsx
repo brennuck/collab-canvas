@@ -122,8 +122,8 @@ export function DashboardPage() {
   const totalOwned = allBoards.filter((b) => b.isOwned).length;
   const totalShared = allBoards.filter((b) => !b.isOwned).length;
 
-  const handleCreateBoard = (name: string) => {
-    createBoard.mutate({ name });
+  const handleCreateBoard = (name: string, isPublic: boolean) => {
+    createBoard.mutate({ name, isPublic });
   };
 
   const handleRenameBoard = (name: string) => {
@@ -337,6 +337,7 @@ export function DashboardPage() {
         onClose={() => setInviteModal({ open: false, board: null })}
         onSubmit={handleInvite}
         boardName={inviteModal.board?.name ?? ""}
+        boardId={inviteModal.board?.id ?? ""}
         isLoading={inviteToBoard.isPending}
       />
 

@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, Link } from "react-router-dom";
 import { trpc } from "@/lib/trpc";
 import { Canvas, type Tool, type CanvasRef } from "@/components/canvas/canvas";
 import { ToolsSidebar, tools } from "@/components/canvas/tools-sidebar";
@@ -7,8 +7,9 @@ import { BoardHeader } from "@/components/canvas/board-header";
 import { StyleToolbar } from "@/components/canvas/style-toolbar";
 import { QuickActions } from "@/components/canvas/quick-actions";
 import { InviteModal } from "@/components/boards/invite-modal";
+import { BoardSettingsModal } from "@/components/boards/board-settings-modal";
 import { ConfirmModal } from "@/components/ui/modal";
-import { ArrowLeft, Loader2 } from "lucide-react";
+import { ArrowLeft, Loader2, Lock, LogIn } from "lucide-react";
 
 export function BoardPage() {
   const { id } = useParams<{ id: string }>();
@@ -32,6 +33,7 @@ export function BoardPage() {
   // Modal states
   const [shareModalOpen, setShareModalOpen] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [settingsModalOpen, setSettingsModalOpen] = useState(false);
 
   const {
     data: board,
@@ -55,6 +57,13 @@ export function BoardPage() {
   const inviteToBoard = trpc.boards.invite.useMutation({
     onSuccess: () => {
       setShareModalOpen(false);
+      utils.boards.get.invalidate({ id: id! });
+    },
+  });
+
+  const updateSettings = trpc.boards.updateSettings.useMutation({
+    onSuccess: () => {
+      setSettingsModalOpen(false);
       utils.boards.get.invalidate({ id: id! });
     },
   });
@@ -119,18 +128,63 @@ export function BoardPage() {
   }
 
   if (error || !board) {
+    const isUnauthorized = error?.data?.code === "UNAUTHORIZED";
+    const isForbidden = error?.data?.code === "FORBIDDEN";
+
     return (
-      <div className="flex h-screen flex-col items-center justify-center gap-4 bg-[var(--color-surface)]">
-        <p className="text-lg text-[var(--color-text-muted)]">
-          {error?.message || "Board not found"}
-        </p>
-        <button
-          onClick={() => navigate("/dashboard")}
-          className="inline-flex items-center gap-2 rounded-lg bg-[var(--color-accent)] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[var(--color-accent-hover)]"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Back to Dashboard
-        </button>
+      <div className="flex h-screen flex-col items-center justify-center gap-6 bg-[var(--color-surface)] px-4">
+        <div className="rounded-full bg-[var(--color-surface-elevated)] p-4">
+          {isUnauthorized ? (
+            <LogIn className="h-8 w-8 text-[var(--color-accent)]" />
+          ) : isForbidden ? (
+            <Lock className="h-8 w-8 text-amber-500" />
+          ) : (
+            <ArrowLeft className="h-8 w-8 text-[var(--color-text-muted)]" />
+          )}
+        </div>
+        <div className="text-center">
+          <h2 className="mb-2 text-xl font-semibold text-[var(--color-text)]">
+            {isUnauthorized
+              ? "Sign in required"
+              : isForbidden
+                ? "Private board"
+                : "Board not found"}
+          </h2>
+          <p className="max-w-md text-[var(--color-text-muted)]">
+            {isUnauthorized
+              ? "This board requires you to sign in to view it."
+              : isForbidden
+                ? "This board is private. You need an invite from the owner to access it."
+                : "The board you're looking for doesn't exist or may have been deleted."}
+          </p>
+        </div>
+        <div className="flex gap-3">
+          {isUnauthorized ? (
+            <>
+              <Link
+                to="/login"
+                className="inline-flex items-center gap-2 rounded-lg bg-[var(--color-accent)] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[var(--color-accent-hover)]"
+              >
+                <LogIn className="h-4 w-4" />
+                Sign in
+              </Link>
+              <Link
+                to="/"
+                className="inline-flex items-center gap-2 rounded-lg border border-[var(--color-border)] px-4 py-2 text-sm font-medium text-[var(--color-text)] transition-colors hover:bg-[var(--color-surface-hover)]"
+              >
+                Go home
+              </Link>
+            </>
+          ) : (
+            <button
+              onClick={() => navigate("/")}
+              className="inline-flex items-center gap-2 rounded-lg bg-[var(--color-accent)] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[var(--color-accent-hover)]"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Go home
+            </button>
+          )}
+        </div>
       </div>
     );
   }
@@ -140,7 +194,11 @@ export function BoardPage() {
     ...board.members.map((m) => ({ ...m, isOnline: true })),
   ];
 
+  // Check if user can edit (not a viewer)
+  const canEdit = board.userRole !== "viewer";
+
   const handleRename = (name: string) => {
+    if (!canEdit) return;
     renameBoard.mutate({ id: id!, name });
   };
 
@@ -152,10 +210,14 @@ export function BoardPage() {
     deleteBoard.mutate({ id: id! });
   };
 
+  const handleUpdateSettings = (isPublic: boolean) => {
+    updateSettings.mutate({ id: id!, isPublic });
+  };
+
   return (
     <div
       className="flex h-screen flex-col bg-[var(--color-surface)]"
-      onKeyDown={handleKeyDown}
+      onKeyDown={canEdit ? handleKeyDown : undefined}
       tabIndex={0}
     >
       <BoardHeader
@@ -166,61 +228,91 @@ export function BoardPage() {
         onZoomIn={() => setZoom((z) => Math.min(400, z + 25))}
         onZoomOut={() => setZoom((z) => Math.max(25, z - 25))}
         onZoomReset={() => setZoom(100)}
-        onRename={handleRename}
-        onShare={() => setShareModalOpen(true)}
-        onDelete={() => setDeleteModalOpen(true)}
-        canUndo={canUndo}
-        canRedo={canRedo}
-        onUndo={handleUndo}
-        onRedo={handleRedo}
+        onRename={canEdit ? handleRename : undefined}
+        onShare={board.isOwner ? () => setShareModalOpen(true) : undefined}
+        onDelete={board.isOwner ? () => setDeleteModalOpen(true) : undefined}
+        onSettings={board.isOwner ? () => setSettingsModalOpen(true) : undefined}
+        canUndo={canEdit ? canUndo : false}
+        canRedo={canEdit ? canRedo : false}
+        onUndo={canEdit ? handleUndo : undefined}
+        onRedo={canEdit ? handleRedo : undefined}
         isConnected={true}
         isSaving={isSaving || renameBoard.isPending}
       />
 
       <div className="relative flex flex-1 overflow-hidden">
-        <ToolsSidebar activeTool={activeTool} onToolChange={setActiveTool} />
+        {/* Only show tools sidebar if user can edit */}
+        {canEdit && <ToolsSidebar activeTool={activeTool} onToolChange={setActiveTool} />}
 
         <Canvas
           ref={canvasRef}
           boardId={id!}
-          activeTool={activeTool}
+          activeTool={canEdit ? activeTool : "pan"}
           color={activeColor}
           strokeWidth={activeStrokeWidth}
           zoom={zoom}
           onZoomChange={setZoom}
           onSavingChange={setIsSaving}
+          readOnly={!canEdit}
         />
 
-        <StyleToolbar
-          activeColor={activeColor}
-          activeStrokeWidth={activeStrokeWidth}
-          onColorChange={setActiveColor}
-          onStrokeWidthChange={setActiveStrokeWidth}
-        />
+        {/* Only show style toolbar if user can edit */}
+        {canEdit && (
+          <StyleToolbar
+            activeColor={activeColor}
+            activeStrokeWidth={activeStrokeWidth}
+            onColorChange={setActiveColor}
+            onStrokeWidthChange={setActiveStrokeWidth}
+          />
+        )}
 
         <QuickActions onFitToScreen={() => setZoom(100)} />
       </div>
 
-      {/* Share/Invite Modal */}
-      <InviteModal
-        isOpen={shareModalOpen}
-        onClose={() => setShareModalOpen(false)}
-        onSubmit={handleInvite}
-        boardName={board.name}
-        isLoading={inviteToBoard.isPending}
-      />
+      {/* View-only banner for viewers */}
+      {!canEdit && (
+        <div className="absolute bottom-4 left-1/2 z-20 -translate-x-1/2 rounded-full bg-[var(--color-surface-elevated)] px-4 py-2 text-sm text-[var(--color-text-muted)] shadow-lg">
+          👁️ View only — you can pan and zoom but not edit
+        </div>
+      )}
 
-      {/* Delete Confirmation */}
-      <ConfirmModal
-        isOpen={deleteModalOpen}
-        onClose={() => setDeleteModalOpen(false)}
-        onConfirm={handleDelete}
-        title="Delete board"
-        message={`Are you sure you want to delete "${board.name}"? This action cannot be undone and all content will be permanently lost.`}
-        confirmText="Delete"
-        confirmVariant="danger"
-        isLoading={deleteBoard.isPending}
-      />
+      {/* Share/Invite Modal - only for owners */}
+      {board.isOwner && (
+        <InviteModal
+          isOpen={shareModalOpen}
+          onClose={() => setShareModalOpen(false)}
+          onSubmit={handleInvite}
+          boardName={board.name}
+          boardId={id!}
+          isLoading={inviteToBoard.isPending}
+        />
+      )}
+
+      {/* Delete Confirmation - only for owners */}
+      {board.isOwner && (
+        <ConfirmModal
+          isOpen={deleteModalOpen}
+          onClose={() => setDeleteModalOpen(false)}
+          onConfirm={handleDelete}
+          title="Delete board"
+          message={`Are you sure you want to delete "${board.name}"? This action cannot be undone and all content will be permanently lost.`}
+          confirmText="Delete"
+          confirmVariant="danger"
+          isLoading={deleteBoard.isPending}
+        />
+      )}
+
+      {/* Board Settings - only for owners */}
+      {board.isOwner && (
+        <BoardSettingsModal
+          isOpen={settingsModalOpen}
+          onClose={() => setSettingsModalOpen(false)}
+          boardName={board.name}
+          isPublic={board.isPublic}
+          onUpdateSettings={handleUpdateSettings}
+          isLoading={updateSettings.isPending}
+        />
+      )}
     </div>
   );
 }

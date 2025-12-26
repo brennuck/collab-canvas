@@ -1,58 +1,56 @@
 import { useState } from "react";
 import { Modal } from "@/components/ui/modal";
-import { Globe, Lock } from "lucide-react";
+import { Globe, Lock, Settings } from "lucide-react";
 
-interface CreateBoardModalProps {
+interface BoardSettingsModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (name: string, isPublic: boolean) => void;
+  boardName: string;
+  isPublic: boolean;
+  onUpdateSettings: (isPublic: boolean) => void;
   isLoading?: boolean;
 }
 
-export function CreateBoardModal({
+export function BoardSettingsModal({
   isOpen,
   onClose,
-  onSubmit,
+  boardName,
+  isPublic: initialIsPublic,
+  onUpdateSettings,
   isLoading = false,
-}: CreateBoardModalProps) {
-  const [name, setName] = useState("");
-  const [isPublic, setIsPublic] = useState(true);
+}: BoardSettingsModalProps) {
+  const [isPublic, setIsPublic] = useState(initialIsPublic);
   const [prevOpen, setPrevOpen] = useState(false);
 
-  // Reset form when modal closes
-  if (!isOpen && prevOpen) {
-    setName("");
-    setIsPublic(true);
-    setPrevOpen(false);
-  } else if (isOpen && !prevOpen) {
+  // Sync state when modal opens
+  if (isOpen && !prevOpen) {
+    setIsPublic(initialIsPublic);
     setPrevOpen(true);
+  } else if (!isOpen && prevOpen) {
+    setPrevOpen(false);
   }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim()) return;
-    onSubmit(name.trim(), isPublic);
+    onUpdateSettings(isPublic);
   };
 
-  return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Create new board">
-      <form onSubmit={handleSubmit}>
-        <label className="mb-2 block text-sm font-medium text-[var(--color-text)]">
-          Board name
-        </label>
-        <input
-          type="text"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          placeholder="e.g., Project Brainstorm"
-          autoFocus
-          className="mb-4 w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-2.5 text-[var(--color-text)] placeholder-[var(--color-text-muted)] focus:border-[var(--color-accent)] focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)]"
-        />
+  const hasChanges = isPublic !== initialIsPublic;
 
+  return (
+    <Modal isOpen={isOpen} onClose={onClose} title="Board settings">
+      <div className="mb-4 flex items-center gap-2 rounded-lg bg-[var(--color-surface-hover)] px-3 py-2">
+        <Settings className="h-4 w-4 text-[var(--color-text-muted)]" />
+        <span className="text-sm text-[var(--color-text-muted)]">
+          Settings for <strong className="text-[var(--color-text)]">{boardName}</strong>
+        </span>
+      </div>
+
+      <form onSubmit={handleSubmit}>
         <label className="mb-2 block text-sm font-medium text-[var(--color-text)]">
           Visibility
         </label>
-        <div className="mb-4 grid grid-cols-2 gap-2">
+        <div className="mb-2 grid grid-cols-2 gap-2">
           <button
             type="button"
             onClick={() => setIsPublic(true)}
@@ -78,7 +76,7 @@ export function CreateBoardModal({
             Private
           </button>
         </div>
-        <p className="mb-4 text-xs text-[var(--color-text-muted)]">
+        <p className="mb-6 text-xs text-[var(--color-text-muted)]">
           {isPublic
             ? "Anyone with the link can view this board. Only invited members can edit."
             : "Only invited members can view and edit this board."}
@@ -94,13 +92,14 @@ export function CreateBoardModal({
           </button>
           <button
             type="submit"
-            disabled={!name.trim() || isLoading}
+            disabled={!hasChanges || isLoading}
             className="rounded-lg bg-[var(--color-accent)] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[var(--color-accent-hover)] disabled:opacity-50"
           >
-            {isLoading ? "Creating..." : "Create board"}
+            {isLoading ? "Saving..." : "Save changes"}
           </button>
         </div>
       </form>
     </Modal>
   );
 }
+

@@ -34,14 +34,8 @@ function App() {
       </Route>
 
       {/* Board page without the standard layout (full-screen canvas) */}
-      <Route
-        path="/board/:id"
-        element={
-          <ProtectedRoute>
-            <BoardPage />
-          </ProtectedRoute>
-        }
-      />
+      {/* Public boards are viewable by anyone, private boards require auth */}
+      <Route path="/board/:id" element={<BoardPage />} />
     </Routes>
   );
 }
