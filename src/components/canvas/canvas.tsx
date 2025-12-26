@@ -429,13 +429,34 @@ export function Canvas({ activeTool, color, strokeWidth, zoom, onZoomChange }: C
     setTextValue("");
   };
 
-  // Handle wheel for zooming
+  // Handle wheel for zooming (centered on cursor)
   const handleWheel = (e: React.WheelEvent) => {
-    if (e.ctrlKey || e.metaKey) {
-      e.preventDefault();
-      const delta = e.deltaY > 0 ? -10 : 10;
-      onZoomChange(Math.min(400, Math.max(25, zoom + delta)));
-    }
+    e.preventDefault();
+
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const rect = canvas.getBoundingClientRect();
+
+    // Get cursor position relative to canvas
+    const cursorX = e.clientX - rect.left;
+    const cursorY = e.clientY - rect.top;
+
+    // Calculate zoom delta
+    const zoomSensitivity = 0.1;
+    const delta = e.deltaY > 0 ? -zoomSensitivity : zoomSensitivity;
+    const newZoom = Math.min(400, Math.max(25, zoom * (1 + delta)));
+
+    // Calculate the world point under the cursor before zoom
+    const worldX = (cursorX - offset.x) / (zoom / 100);
+    const worldY = (cursorY - offset.y) / (zoom / 100);
+
+    // Calculate new offset so the same world point stays under cursor
+    const newOffsetX = cursorX - worldX * (newZoom / 100);
+    const newOffsetY = cursorY - worldY * (newZoom / 100);
+
+    setOffset({ x: newOffsetX, y: newOffsetY });
+    onZoomChange(Math.round(newZoom));
   };
 
   // Resize canvas to fill container
