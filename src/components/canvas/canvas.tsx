@@ -85,6 +85,146 @@ export function Canvas({ activeTool, color, strokeWidth, zoom, onZoomChange }: C
     [offset, zoom]
   );
 
+  // Draw grid background
+  const drawGrid = useCallback(
+    (ctx: CanvasRenderingContext2D, width: number, height: number) => {
+      const gridSize = 20;
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.03)";
+      ctx.lineWidth = 1;
+
+      const startX = -offset.x / (zoom / 100);
+      const startY = -offset.y / (zoom / 100);
+      const endX = startX + width / (zoom / 100);
+      const endY = startY + height / (zoom / 100);
+
+      for (let x = Math.floor(startX / gridSize) * gridSize; x < endX; x += gridSize) {
+        ctx.beginPath();
+        ctx.moveTo(x, startY);
+        ctx.lineTo(x, endY);
+        ctx.stroke();
+      }
+
+      for (let y = Math.floor(startY / gridSize) * gridSize; y < endY; y += gridSize) {
+        ctx.beginPath();
+        ctx.moveTo(startX, y);
+        ctx.lineTo(endX, y);
+        ctx.stroke();
+      }
+    },
+    [offset, zoom]
+  );
+
+  // Draw a single element
+  const drawElement = useCallback(
+    (ctx: CanvasRenderingContext2D, el: CanvasElement, isSelected: boolean) => {
+      ctx.strokeStyle = el.color;
+      ctx.fillStyle = el.fill || el.color;
+      ctx.lineWidth = el.strokeWidth;
+      ctx.lineCap = "round";
+      ctx.lineJoin = "round";
+
+      switch (el.type) {
+        case "pencil": {
+          if (el.points && el.points.length > 0) {
+            ctx.beginPath();
+            const firstPoint = el.points[0];
+            if (firstPoint) {
+              ctx.moveTo(firstPoint.x, firstPoint.y);
+            }
+            for (let i = 1; i < el.points.length; i++) {
+              const point = el.points[i];
+              if (point) {
+                ctx.lineTo(point.x, point.y);
+              }
+            }
+            ctx.stroke();
+          }
+          break;
+        }
+
+        case "line": {
+          ctx.beginPath();
+          ctx.moveTo(el.x, el.y);
+          ctx.lineTo(el.endX ?? el.x, el.endY ?? el.y);
+          ctx.stroke();
+          break;
+        }
+
+        case "rectangle": {
+          ctx.strokeRect(el.x, el.y, el.width ?? 0, el.height ?? 0);
+          break;
+        }
+
+        case "circle": {
+          const radiusX = Math.abs((el.width ?? 0) / 2);
+          const radiusY = Math.abs((el.height ?? 0) / 2);
+          const centerX = el.x + (el.width ?? 0) / 2;
+          const centerY = el.y + (el.height ?? 0) / 2;
+
+          ctx.beginPath();
+          ctx.ellipse(centerX, centerY, radiusX, radiusY, 0, 0, Math.PI * 2);
+          ctx.stroke();
+          break;
+        }
+
+        case "text": {
+          ctx.font = `${16 * (el.strokeWidth / 2)}px Inter, system-ui, sans-serif`;
+          ctx.fillStyle = el.color;
+          ctx.fillText(el.text ?? "", el.x, el.y);
+          break;
+        }
+
+        case "sticky": {
+          // Background
+          ctx.fillStyle = el.fill || "#fef08a";
+          ctx.fillRect(el.x, el.y, el.width ?? 150, el.height ?? 150);
+
+          // Border
+          ctx.strokeStyle = "rgba(0, 0, 0, 0.1)";
+          ctx.lineWidth = 1;
+          ctx.strokeRect(el.x, el.y, el.width ?? 150, el.height ?? 150);
+
+          // Text
+          if (el.text) {
+            ctx.fillStyle = "#1f2937";
+            ctx.font = "14px Inter, system-ui, sans-serif";
+            const lines = el.text.split("\n");
+            lines.forEach((line, i) => {
+              ctx.fillText(line, el.x + 10, el.y + 24 + i * 20);
+            });
+          }
+          break;
+        }
+      }
+
+      // Draw selection indicator
+      if (isSelected) {
+        ctx.strokeStyle = "#3b82f6";
+        ctx.lineWidth = 2;
+        ctx.setLineDash([5, 5]);
+
+        if (el.type === "pencil" && el.points) {
+          const minX = Math.min(...el.points.map((p) => p.x));
+          const maxX = Math.max(...el.points.map((p) => p.x));
+          const minY = Math.min(...el.points.map((p) => p.y));
+          const maxY = Math.max(...el.points.map((p) => p.y));
+          ctx.strokeRect(minX - 5, minY - 5, maxX - minX + 10, maxY - minY + 10);
+        } else if (el.type === "line") {
+          const minX = Math.min(el.x, el.endX ?? el.x) - 5;
+          const minY = Math.min(el.y, el.endY ?? el.y) - 5;
+          const maxX = Math.max(el.x, el.endX ?? el.x) + 5;
+          const maxY = Math.max(el.y, el.endY ?? el.y) + 5;
+          ctx.strokeRect(minX, minY, maxX - minX, maxY - minY);
+        } else {
+          ctx.strokeRect(el.x - 5, el.y - 5, (el.width ?? 0) + 10, (el.height ?? 0) + 10);
+        }
+
+        ctx.setLineDash([]);
+      }
+    },
+    []
+  );
+
   // Draw all elements on canvas
   const draw = useCallback(() => {
     const canvas = canvasRef.current;
@@ -112,138 +252,7 @@ export function Canvas({ activeTool, color, strokeWidth, zoom, onZoomChange }: C
 
     // Restore context
     ctx.restore();
-  }, [elements, currentElement, offset, zoom, selectedId]);
-
-  // Draw grid background
-  const drawGrid = (ctx: CanvasRenderingContext2D, width: number, height: number) => {
-    const gridSize = 20;
-    ctx.strokeStyle = "rgba(255, 255, 255, 0.03)";
-    ctx.lineWidth = 1;
-
-    const startX = -offset.x / (zoom / 100);
-    const startY = -offset.y / (zoom / 100);
-    const endX = startX + width / (zoom / 100);
-    const endY = startY + height / (zoom / 100);
-
-    for (let x = Math.floor(startX / gridSize) * gridSize; x < endX; x += gridSize) {
-      ctx.beginPath();
-      ctx.moveTo(x, startY);
-      ctx.lineTo(x, endY);
-      ctx.stroke();
-    }
-
-    for (let y = Math.floor(startY / gridSize) * gridSize; y < endY; y += gridSize) {
-      ctx.beginPath();
-      ctx.moveTo(startX, y);
-      ctx.lineTo(endX, y);
-      ctx.stroke();
-    }
-  };
-
-  // Draw a single element
-  const drawElement = (
-    ctx: CanvasRenderingContext2D,
-    el: CanvasElement,
-    isSelected: boolean
-  ) => {
-    ctx.strokeStyle = el.color;
-    ctx.fillStyle = el.fill || el.color;
-    ctx.lineWidth = el.strokeWidth;
-    ctx.lineCap = "round";
-    ctx.lineJoin = "round";
-
-    switch (el.type) {
-      case "pencil":
-        if (el.points && el.points.length > 0) {
-          ctx.beginPath();
-          ctx.moveTo(el.points[0].x, el.points[0].y);
-          for (let i = 1; i < el.points.length; i++) {
-            ctx.lineTo(el.points[i].x, el.points[i].y);
-          }
-          ctx.stroke();
-        }
-        break;
-
-      case "line":
-        ctx.beginPath();
-        ctx.moveTo(el.x, el.y);
-        ctx.lineTo(el.endX ?? el.x, el.endY ?? el.y);
-        ctx.stroke();
-        break;
-
-      case "rectangle":
-        ctx.strokeRect(el.x, el.y, el.width ?? 0, el.height ?? 0);
-        break;
-
-      case "circle":
-        const radiusX = Math.abs((el.width ?? 0) / 2);
-        const radiusY = Math.abs((el.height ?? 0) / 2);
-        const centerX = el.x + (el.width ?? 0) / 2;
-        const centerY = el.y + (el.height ?? 0) / 2;
-
-        ctx.beginPath();
-        ctx.ellipse(centerX, centerY, radiusX, radiusY, 0, 0, Math.PI * 2);
-        ctx.stroke();
-        break;
-
-      case "text":
-        ctx.font = `${16 * (el.strokeWidth / 2)}px Inter, system-ui, sans-serif`;
-        ctx.fillStyle = el.color;
-        ctx.fillText(el.text ?? "", el.x, el.y);
-        break;
-
-      case "sticky":
-        // Background
-        ctx.fillStyle = el.fill || "#fef08a";
-        ctx.fillRect(el.x, el.y, el.width ?? 150, el.height ?? 150);
-
-        // Border
-        ctx.strokeStyle = "rgba(0, 0, 0, 0.1)";
-        ctx.lineWidth = 1;
-        ctx.strokeRect(el.x, el.y, el.width ?? 150, el.height ?? 150);
-
-        // Text
-        if (el.text) {
-          ctx.fillStyle = "#1f2937";
-          ctx.font = "14px Inter, system-ui, sans-serif";
-          const lines = el.text.split("\n");
-          lines.forEach((line, i) => {
-            ctx.fillText(line, el.x + 10, el.y + 24 + i * 20);
-          });
-        }
-        break;
-    }
-
-    // Draw selection indicator
-    if (isSelected) {
-      ctx.strokeStyle = "#3b82f6";
-      ctx.lineWidth = 2;
-      ctx.setLineDash([5, 5]);
-
-      if (el.type === "pencil" && el.points) {
-        const minX = Math.min(...el.points.map((p) => p.x));
-        const maxX = Math.max(...el.points.map((p) => p.x));
-        const minY = Math.min(...el.points.map((p) => p.y));
-        const maxY = Math.max(...el.points.map((p) => p.y));
-        ctx.strokeRect(minX - 5, minY - 5, maxX - minX + 10, maxY - minY + 10);
-      } else if (el.type === "line") {
-        const minX = Math.min(el.x, el.endX ?? el.x) - 5;
-        const minY = Math.min(el.y, el.endY ?? el.y) - 5;
-        const maxX = Math.max(el.x, el.endX ?? el.x) + 5;
-        const maxY = Math.max(el.y, el.endY ?? el.y) + 5;
-        ctx.strokeRect(minX, minY, maxX - minX, maxY - minY);
-      } else {
-        ctx.strokeRect(
-          el.x - 5,
-          el.y - 5,
-          (el.width ?? 0) + 10,
-          (el.height ?? 0) + 10
-        );
-      }
-
-      ctx.setLineDash([]);
-    }
-  };
+  }, [elements, currentElement, offset, zoom, selectedId, drawGrid, drawElement]);
 
   // Mouse down handler
   const handleMouseDown = (e: React.MouseEvent) => {
@@ -358,6 +367,7 @@ export function Canvas({ activeTool, color, strokeWidth, zoom, onZoomChange }: C
     // Search in reverse order (top elements first)
     for (let i = elements.length - 1; i >= 0; i--) {
       const el = elements[i];
+      if (!el) continue;
 
       if (el.type === "pencil" && el.points) {
         const minX = Math.min(...el.points.map((p) => p.x));
@@ -407,8 +417,8 @@ export function Canvas({ activeTool, color, strokeWidth, zoom, onZoomChange }: C
 
     const rect = canvas.getBoundingClientRect();
     const point: Point = {
-      x: ((textInput.x - rect.left) - offset.x) / (zoom / 100),
-      y: ((textInput.y - rect.top) - offset.y) / (zoom / 100),
+      x: (textInput.x - rect.left - offset.x) / (zoom / 100),
+      y: (textInput.y - rect.top - offset.y) / (zoom / 100),
     };
 
     const newElement: CanvasElement = {
@@ -512,10 +522,7 @@ export function Canvas({ activeTool, color, strokeWidth, zoom, onZoomChange }: C
 
       {/* Text input overlay */}
       {textInput.visible && (
-        <div
-          className="absolute z-20"
-          style={{ left: textInput.x, top: textInput.y }}
-        >
+        <div className="absolute z-20" style={{ left: textInput.x, top: textInput.y }}>
           <textarea
             ref={textInputRef}
             value={textValue}
@@ -545,4 +552,3 @@ export function Canvas({ activeTool, color, strokeWidth, zoom, onZoomChange }: C
     </div>
   );
 }
-
