@@ -507,4 +507,50 @@ export const boardsRouter = router({
 
       return { success: true };
     }),
+
+  // Update a member's role (owner only)
+  updateMemberRole: protectedProcedure
+    .input(
+      z.object({
+        boardId: z.string(),
+        userId: z.string(),
+        role: z.enum(["viewer", "editor", "admin"]),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const board = await ctx.db.boards.findUnique({
+        where: { id: input.boardId },
+      });
+
+      if (!board) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Board not found" });
+      }
+
+      if (board.owner_id !== ctx.user.id) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Only the board owner can update member roles",
+        });
+      }
+
+      // Can't change owner's role
+      if (input.userId === board.owner_id) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Cannot change the owner's role",
+        });
+      }
+
+      await ctx.db.board_members.update({
+        where: {
+          board_id_user_id: {
+            board_id: input.boardId,
+            user_id: input.userId,
+          },
+        },
+        data: { role: input.role },
+      });
+
+      return { success: true };
+    }),
 });

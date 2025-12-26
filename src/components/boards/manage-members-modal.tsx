@@ -47,8 +47,18 @@ export function ManageMembersModal({
     },
   });
 
+  const updateRole = trpc.boards.updateMemberRole.useMutation({
+    onSuccess: () => {
+      utils.boards.getBoardMembers.invalidate({ boardId });
+    },
+  });
+
   const formatRole = (role: string) => {
     return role.charAt(0).toUpperCase() + role.slice(1);
+  };
+
+  const handleRoleChange = (userId: string, newRole: "viewer" | "editor" | "admin") => {
+    updateRole.mutate({ boardId, userId, role: newRole });
   };
 
   return (
@@ -115,9 +125,21 @@ export function ManageMembersModal({
                         {member.name ?? member.email}
                       </p>
                       <p className="truncate text-xs text-[var(--color-text-muted)]">
-                        {member.email} • {formatRole(member.role)}
+                        {member.email}
                       </p>
                     </div>
+                    <select
+                      value={member.role}
+                      onChange={(e) =>
+                        handleRoleChange(member.id, e.target.value as "viewer" | "editor" | "admin")
+                      }
+                      disabled={updateRole.isPending}
+                      className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-elevated)] px-2 py-1 text-xs text-[var(--color-text)] focus:border-[var(--color-accent)] focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)]"
+                    >
+                      <option value="viewer">Viewer</option>
+                      <option value="editor">Editor</option>
+                      <option value="admin">Admin</option>
+                    </select>
                     <button
                       onClick={() => removeMember.mutate({ boardId, userId: member.id })}
                       disabled={removeMember.isPending}
