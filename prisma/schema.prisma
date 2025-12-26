@@ -21,6 +21,7 @@ model users {
   sessions      sessions[]
   owned_boards  boards[]        @relation("BoardOwner")
   board_members board_members[]
+  pinned_boards pinned_boards[]
   comments      comments[]
   elements      elements[]      @relation("ElementCreator")
 }
@@ -48,11 +49,27 @@ model boards {
 
   owner        users           @relation("BoardOwner", fields: [owner_id], references: [id], onDelete: Cascade)
   members      board_members[]
+  pinned_by    pinned_boards[]
   invites      board_invites[]
   elements     elements[]
   comments     comments[]
 
   @@index([owner_id])
+}
+
+// User's pinned boards (persists across devices)
+model pinned_boards {
+  id         String   @id @default(cuid())
+  user_id    String
+  board_id   String
+  pinned_at  DateTime @default(now())
+
+  user       users    @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  board      boards   @relation(fields: [board_id], references: [id], onDelete: Cascade)
+
+  @@unique([user_id, board_id])
+  @@index([user_id])
+  @@index([board_id])
 }
 
 enum BoardRole {
