@@ -1,4 +1,5 @@
 import { useRef, useState, useCallback, useEffect, useImperativeHandle, forwardRef } from "react";
+import { trpc } from "@/lib/trpc";
 
 export type Tool =
   | "select"
@@ -33,11 +34,13 @@ export interface CanvasElement {
 }
 
 interface CanvasProps {
+  boardId: string;
   activeTool: Tool;
   color: string;
   strokeWidth: number;
   zoom: number;
   onZoomChange: (zoom: number) => void;
+  onSavingChange?: (isSaving: boolean) => void;
 }
 
 export interface CanvasRef {
@@ -48,7 +51,7 @@ export interface CanvasRef {
 }
 
 export const Canvas = forwardRef<CanvasRef, CanvasProps>(function Canvas(
-  { activeTool, color, strokeWidth, zoom, onZoomChange },
+  { boardId, activeTool, color, strokeWidth, zoom, onZoomChange, onSavingChange },
   ref
 ) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -82,10 +85,65 @@ export const Canvas = forwardRef<CanvasRef, CanvasProps>(function Canvas(
   const [textValue, setTextValue] = useState("");
   const textInputRef = useRef<HTMLTextAreaElement>(null);
 
+  // Track if initial load is done
+  const [isLoaded, setIsLoaded] = useState(false);
+  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Load elements from database
+  const { data: savedElements } = trpc.elements.list.useQuery({ boardId }, { enabled: !!boardId });
+
+  // Mutation for saving all elements (debounced batch sync)
+  const syncElements = trpc.elements.batchSync.useMutation({
+    onMutate: () => onSavingChange?.(true),
+    onSettled: () => onSavingChange?.(false),
+  });
+
+  // Load saved elements using derived state pattern
+  const [prevSavedElements, setPrevSavedElements] = useState(savedElements);
+  if (savedElements && savedElements !== prevSavedElements && !isLoaded) {
+    const loadedElements: CanvasElement[] = savedElements.map((el) => ({
+      id: el.id,
+      type: el.type as CanvasElement["type"],
+      x: el.x,
+      y: el.y,
+      width: el.width ?? undefined,
+      height: el.height ?? undefined,
+      points: el.points,
+      endX: el.endX,
+      endY: el.endY,
+      text: el.text,
+      color: el.color,
+      strokeWidth: el.strokeWidth,
+      fill: el.fill,
+    }));
+    setPrevSavedElements(savedElements);
+    setElements(loadedElements);
+    setHistory([loadedElements]);
+    setHistoryIndex(0);
+    setIsLoaded(true);
+  }
+
+  // Debounced save to database
+  const saveToDatabase = useCallback(
+    (elementsToSave: CanvasElement[]) => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+
+      saveTimeoutRef.current = setTimeout(() => {
+        syncElements.mutate({
+          boardId,
+          elements: elementsToSave,
+        });
+      }, 1000); // Debounce 1 second
+    },
+    [boardId, syncElements]
+  );
+
   // Generate unique ID
   const generateId = () => `el_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
-  // Push new state to history
+  // Push new state to history and save
   const pushToHistory = useCallback(
     (newElements: CanvasElement[]) => {
       setHistory((prev) => {
@@ -94,29 +152,35 @@ export const Canvas = forwardRef<CanvasRef, CanvasProps>(function Canvas(
         return [...newHistory, newElements];
       });
       setHistoryIndex((prev) => prev + 1);
+      // Save to database (debounced)
+      saveToDatabase(newElements);
     },
-    [historyIndex]
+    [historyIndex, saveToDatabase]
   );
 
   // Undo function
   const undo = useCallback(() => {
     if (historyIndex > 0) {
       const newIndex = historyIndex - 1;
+      const restoredElements = history[newIndex] ?? [];
       setHistoryIndex(newIndex);
-      setElements(history[newIndex] ?? []);
+      setElements(restoredElements);
       setSelectedId(null);
+      saveToDatabase(restoredElements);
     }
-  }, [historyIndex, history]);
+  }, [historyIndex, history, saveToDatabase]);
 
   // Redo function
   const redo = useCallback(() => {
     if (historyIndex < history.length - 1) {
       const newIndex = historyIndex + 1;
+      const restoredElements = history[newIndex] ?? [];
       setHistoryIndex(newIndex);
-      setElements(history[newIndex] ?? []);
+      setElements(restoredElements);
       setSelectedId(null);
+      saveToDatabase(restoredElements);
     }
-  }, [historyIndex, history]);
+  }, [historyIndex, history, saveToDatabase]);
 
   // Expose undo/redo via ref
   useImperativeHandle(

@@ -26,6 +26,9 @@ export function BoardPage() {
   const [canUndo, setCanUndo] = useState(false);
   const [canRedo, setCanRedo] = useState(false);
 
+  // Saving state
+  const [isSaving, setIsSaving] = useState(false);
+
   // Modal states
   const [shareModalOpen, setShareModalOpen] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
@@ -171,7 +174,7 @@ export function BoardPage() {
         onUndo={handleUndo}
         onRedo={handleRedo}
         isConnected={true}
-        isSaving={renameBoard.isPending}
+        isSaving={isSaving || renameBoard.isPending}
       />
 
       <div className="relative flex flex-1 overflow-hidden">
@@ -179,11 +182,13 @@ export function BoardPage() {
 
         <Canvas
           ref={canvasRef}
+          boardId={id!}
           activeTool={activeTool}
           color={activeColor}
           strokeWidth={activeStrokeWidth}
           zoom={zoom}
           onZoomChange={setZoom}
+          onSavingChange={setIsSaving}
         />
 
         <StyleToolbar
