@@ -85,12 +85,15 @@ export const Canvas = forwardRef<CanvasRef, CanvasProps>(function Canvas(
   const [textValue, setTextValue] = useState("");
   const textInputRef = useRef<HTMLTextAreaElement>(null);
 
-  // Track if initial load is done
-  const [isLoaded, setIsLoaded] = useState(false);
+  // Track if initial load is done and for which board
+  const [loadedBoardId, setLoadedBoardId] = useState<string | null>(null);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Load elements from database
-  const { data: savedElements } = trpc.elements.list.useQuery({ boardId }, { enabled: !!boardId });
+  const { data: savedElements, isFetched } = trpc.elements.list.useQuery(
+    { boardId },
+    { enabled: !!boardId }
+  );
 
   // Mutation for saving all elements (debounced batch sync)
   const syncElements = trpc.elements.batchSync.useMutation({
@@ -98,10 +101,11 @@ export const Canvas = forwardRef<CanvasRef, CanvasProps>(function Canvas(
     onSettled: () => onSavingChange?.(false),
   });
 
-  // Load saved elements using derived state pattern
-  const [prevSavedElements, setPrevSavedElements] = useState(savedElements);
-  if (savedElements && savedElements !== prevSavedElements && !isLoaded) {
-    const loadedElements: CanvasElement[] = savedElements.map((el) => ({
+  // Load saved elements when data arrives or board changes
+  // Using derived state pattern to avoid useEffect with setState
+  const needsLoad = isFetched && loadedBoardId !== boardId;
+  if (needsLoad) {
+    const loadedElements: CanvasElement[] = (savedElements ?? []).map((el) => ({
       id: el.id,
       type: el.type as CanvasElement["type"],
       x: el.x,
@@ -116,11 +120,10 @@ export const Canvas = forwardRef<CanvasRef, CanvasProps>(function Canvas(
       strokeWidth: el.strokeWidth,
       fill: el.fill,
     }));
-    setPrevSavedElements(savedElements);
+    setLoadedBoardId(boardId);
     setElements(loadedElements);
     setHistory([loadedElements]);
     setHistoryIndex(0);
-    setIsLoaded(true);
   }
 
   // Debounced save to database
