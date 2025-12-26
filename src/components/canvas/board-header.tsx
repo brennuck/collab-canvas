@@ -105,7 +105,7 @@ export function BoardHeader({
 
   // Check if a member is online
   const isMemberOnline = (memberId: string) => onlineUserIds.has(memberId);
-  
+
   // Use external online count from socket, or fallback to counting from set
   const onlineCount = externalOnlineCount ?? onlineUserIds.size;
 

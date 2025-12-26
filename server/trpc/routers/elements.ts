@@ -2,19 +2,6 @@ import { z } from "zod";
 import { router, protectedProcedure, publicProcedure } from "../trpc";
 import { TRPCError } from "@trpc/server";
 
-// Zod schema for element content based on type
-const elementContentSchema = z.object({
-  points: z.array(z.object({ x: z.number(), y: z.number() })).optional(),
-  endX: z.number().optional(),
-  endY: z.number().optional(),
-  text: z.string().optional(),
-  header: z.string().optional(),
-  description: z.string().optional(),
-  color: z.string().optional(),
-  strokeWidth: z.number().optional(),
-  fill: z.string().optional(),
-});
-
 const elementTypeMap = {
   pencil: "freehand",
   line: "connector",

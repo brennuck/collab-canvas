@@ -49,4 +49,3 @@ export function LiveCursors({ cursors, zoom, offset }: LiveCursorsProps) {
     </div>
   );
 }
-

@@ -23,4 +23,3 @@ export function getInitials(name?: string | null, email?: string): string {
   }
   return email?.slice(0, 2).toUpperCase() ?? "??";
 }
-

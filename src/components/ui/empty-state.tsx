@@ -19,4 +19,3 @@ export function EmptyState({ title, description, action, icon: Icon }: EmptyStat
     </div>
   );
 }
-

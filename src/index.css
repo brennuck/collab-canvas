@@ -22,7 +22,12 @@ body {
   color: var(--color-text);
 }
 
-h1, h2, h3, h4, h5, h6 {
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
   font-family: "Syne", sans-serif;
 }
 
@@ -34,7 +39,8 @@ kbd {
 
 /* Animated gradient background */
 @keyframes gradient-shift {
-  0%, 100% {
+  0%,
+  100% {
     background-position: 0% 50%;
   }
   50% {
@@ -49,7 +55,8 @@ kbd {
 
 /* Floating animation for decorative elements */
 @keyframes float {
-  0%, 100% {
+  0%,
+  100% {
     transform: translateY(0px) rotate(0deg);
   }
   33% {
@@ -76,7 +83,8 @@ kbd {
 
 /* Pulse glow effect */
 @keyframes pulse-glow {
-  0%, 100% {
+  0%,
+  100% {
     box-shadow: 0 0 20px rgba(0, 212, 170, 0.3);
   }
   50% {
@@ -90,7 +98,8 @@ kbd {
 
 /* Cursor blink for live indicator */
 @keyframes cursor-blink {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 1;
   }
   50% {
@@ -134,16 +143,28 @@ kbd {
   opacity: 0;
 }
 
-.animation-delay-100 { animation-delay: 0.1s; }
-.animation-delay-200 { animation-delay: 0.2s; }
-.animation-delay-300 { animation-delay: 0.3s; }
-.animation-delay-400 { animation-delay: 0.4s; }
-.animation-delay-500 { animation-delay: 0.5s; }
-.animation-delay-600 { animation-delay: 0.6s; }
+.animation-delay-100 {
+  animation-delay: 0.1s;
+}
+.animation-delay-200 {
+  animation-delay: 0.2s;
+}
+.animation-delay-300 {
+  animation-delay: 0.3s;
+}
+.animation-delay-400 {
+  animation-delay: 0.4s;
+}
+.animation-delay-500 {
+  animation-delay: 0.5s;
+}
+.animation-delay-600 {
+  animation-delay: 0.6s;
+}
 
 /* Grid pattern background */
 .bg-grid {
-  background-image: 
+  background-image:
     linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
     linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
   background-size: 40px 40px;
@@ -163,7 +184,8 @@ kbd {
 
 /* Wiggle animation for sticky note */
 @keyframes wiggle {
-  0%, 100% {
+  0%,
+  100% {
     transform: rotate(6deg);
   }
   25% {
@@ -181,7 +203,8 @@ kbd {
 
 /* Squiggle line drawing animation */
 @keyframes squiggle {
-  0%, 100% {
+  0%,
+  100% {
     stroke-dashoffset: 0;
   }
   50% {
@@ -196,7 +219,8 @@ kbd {
 
 /* Cursor 1 movement */
 @keyframes cursor-move-1 {
-  0%, 100% {
+  0%,
+  100% {
     transform: translate(0, 0);
   }
   25% {
@@ -216,7 +240,8 @@ kbd {
 
 /* Cursor 2 movement */
 @keyframes cursor-move-2 {
-  0%, 100% {
+  0%,
+  100% {
     transform: translate(0, 0);
   }
   25% {
@@ -237,7 +262,8 @@ kbd {
 
 /* Subtle pulse for accent circle */
 @keyframes pulse-subtle {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 1;
     transform: scale(1);
   }
@@ -285,18 +311,6 @@ kbd {
 
 /* Fade edges */
 .carousel-container {
-  mask-image: linear-gradient(
-    to right,
-    transparent,
-    black 10%,
-    black 90%,
-    transparent
-  );
-  -webkit-mask-image: linear-gradient(
-    to right,
-    transparent,
-    black 10%,
-    black 90%,
-    transparent
-  );
+  mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
+  -webkit-mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
 }

@@ -40,41 +40,44 @@ io.on("connection", (socket) => {
   let odColor: string | null = null;
 
   // Join a board room
-  socket.on("join-board", (data: { boardId: string; odId: string; odName: string; odColor: string }) => {
-    currentBoardId = data.boardId;
-    odId = data.odId;
-    odName = data.odName;
-    odColor = data.odColor;
+  socket.on(
+    "join-board",
+    (data: { boardId: string; odId: string; odName: string; odColor: string }) => {
+      currentBoardId = data.boardId;
+      odId = data.odId;
+      odName = data.odName;
+      odColor = data.odColor;
 
-    socket.join(`board:${data.boardId}`);
+      socket.join(`board:${data.boardId}`);
 
-    // Initialize board users map if needed
-    if (!boardUsers.has(data.boardId)) {
-      boardUsers.set(data.boardId, new Map());
+      // Initialize board users map if needed
+      if (!boardUsers.has(data.boardId)) {
+        boardUsers.set(data.boardId, new Map());
+      }
+
+      const users = boardUsers.get(data.boardId)!;
+
+      // Send current users to the new joiner BEFORE adding them
+      socket.emit("current-users", Array.from(users.values()));
+
+      // Add new user to the map with initial position (0,0)
+      const newUser: CursorData = {
+        odId: data.odId,
+        odName: data.odName,
+        odColor: data.odColor,
+        x: 0,
+        y: 0,
+      };
+      users.set(data.odId, newUser);
+
+      // Notify others that someone joined
+      socket.to(`board:${data.boardId}`).emit("user-joined", {
+        odId: data.odId,
+        odName: data.odName,
+        odColor: data.odColor,
+      });
     }
-
-    const users = boardUsers.get(data.boardId)!;
-
-    // Send current users to the new joiner BEFORE adding them
-    socket.emit("current-users", Array.from(users.values()));
-
-    // Add new user to the map with initial position (0,0)
-    const newUser: CursorData = {
-      odId: data.odId,
-      odName: data.odName,
-      odColor: data.odColor,
-      x: 0,
-      y: 0,
-    };
-    users.set(data.odId, newUser);
-
-    // Notify others that someone joined
-    socket.to(`board:${data.boardId}`).emit("user-joined", {
-      odId: data.odId,
-      odName: data.odName,
-      odColor: data.odColor,
-    });
-  });
+  );
 
   // Cursor movement
   socket.on("cursor-move", (data: { x: number; y: number }) => {

@@ -57,4 +57,3 @@ export function ToolsSidebar({ activeTool, onToolChange }: ToolsSidebarProps) {
 
 // Export tools array for keyboard shortcut handling
 export { tools };
-

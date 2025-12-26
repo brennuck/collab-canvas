@@ -29,4 +29,3 @@ interface DatabaseUserAttributes {
   email: string;
   name: string | null;
 }
-

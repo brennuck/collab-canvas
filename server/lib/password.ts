@@ -18,4 +18,3 @@ export async function verify(storedPassword: string, suppliedPassword: string): 
 
   return timingSafeEqual(hashedPasswordBuf, suppliedPasswordBuf);
 }
-

@@ -1,363 +1,167 @@
-# Starter Template
-
-A full-stack starter template with React, TypeScript, tRPC, Lucia Auth, Prisma, and more.
-
-## Tech Stack
-
-- **Frontend**: React 19, TypeScript, Vite, React Router, TanStack Query
-- **Backend**: Express, tRPC, Lucia Auth
-- **Database**: PostgreSQL with Prisma ORM
-- **Styling**: Tailwind CSS
-- **Validation**: Zod
-- **Forms**: React Hook Form
-- **Testing**: Vitest, React Testing Library
-- **Code Quality**: ESLint, Prettier
-
-## Getting Started
-
-### Prerequisites
-
-- Node.js 18+
-- PostgreSQL database
-- pnpm (recommended) or npm
-
-### Installation
-
-1. **Clone the repository**
-
-   ```bash
-   git clone https://github.com/your-username/starter.git
-   cd starter
-   ```
-
-2. **Install dependencies**
-
-   ```bash
-   npm install
-   ```
-
-3. **Set up environment variables**
-
-   ```bash
-   cp .env.example .env
-   ```
-
-   Update `.env` with your database connection string:
-
-   ```
-   DATABASE_URL="postgresql://postgres:postgres@localhost:5432/starter?schema=public"
-   ```
-
-4. **Set up the database**
-
-   ```bash
-   npm run db:push
-   ```
+# CollabCanvas
 
-5. **Start development servers**
+A real-time collaborative whiteboard application where teams can brainstorm, sketch ideas, and work together visually. Built with modern web technologies for seamless, instant collaboration.
 
-   ```bash
-   npm run dev
-   ```
-
-   This will start:
-   - Frontend: http://localhost:5173
-   - Backend: http://localhost:3000
-
-## Project Structure
-
-```
-├── prisma/
-│   ├── schema.prisma      # Database schema
-│   └── seed.ts            # Database seeding script
-├── server/
-│   ├── auth/              # Lucia auth configuration
-│   ├── db/                # Prisma client
-│   ├── lib/               # Server utilities
-│   ├── trpc/
-│   │   ├── routers/       # tRPC routers
-│   │   └── trpc.ts        # tRPC configuration
-│   └── index.ts           # Express server entry
-├── src/
-│   ├── components/
-│   │   ├── auth/          # Auth components
-│   │   ├── layouts/       # Layout components
-│   │   └── ui/            # UI components (if needed)
-│   ├── hooks/             # Custom React hooks
-│   ├── lib/               # Client utilities
-│   ├── pages/             # Page components
-│   ├── test/              # Test setup
-│   ├── App.tsx            # Main app component
-│   └── main.tsx           # React entry point
-├── package.json
-├── tsconfig.json
-├── vite.config.ts
-└── tailwind.config.ts
-```
-
-## Available Scripts
-
-| Command              | Description                                 |
-| -------------------- | ------------------------------------------- |
-| `npm run dev`        | Start both frontend and backend in dev mode |
-| `npm run dev:client` | Start frontend only                         |
-| `npm run dev:server` | Start backend only                          |
-| `npm run build`      | Build both frontend and backend             |
-| `npm run test`       | Run tests with Vitest                       |
-| `npm run test:ui`    | Run tests with Vitest UI                    |
-| `npm run lint`       | Run ESLint                                  |
-| `npm run format`     | Format code with Prettier                   |
-| `npm run db:push`    | Push schema changes to database             |
-| `npm run db:migrate` | Run database migrations                     |
-| `npm run db:studio`  | Open Prisma Studio                          |
-| `npm run db:seed`    | Seed the database                           |
+## ✨ Features
 
-## Database (Prisma)
+### 🎨 Drawing & Canvas Tools
 
-### Schema Location
-
-The database schema is defined in `prisma/schema.prisma`.
+- **Freehand Drawing** - Smooth, responsive pencil tool for sketching
+- **Shapes** - Rectangles, circles, lines for structured diagrams
+- **Text & Sticky Notes** - Add text boxes and colorful sticky notes
+- **Cards** - Create fancy cards with headers and descriptions
+- **Eraser** - Remove elements with precision
+- **Select & Move** - Drag elements around the canvas
+- **Pan & Zoom** - Navigate large canvases with cursor-centered zoom
 
-### Commands
+### 👥 Real-Time Collaboration
 
-| Command               | Description                                     |
-| --------------------- | ----------------------------------------------- |
-| `npm run db:generate` | Regenerate Prisma Client after schema changes   |
-| `npm run db:push`     | Push schema to DB (dev only, may lose data)     |
-| `npm run db:migrate`  | Create and run migrations (safe for production) |
-| `npm run db:studio`   | Open Prisma Studio GUI                          |
-| `npm run db:seed`     | Seed the database                               |
+- **Live Cursors** - See where team members are on the canvas in real-time
+- **Instant Sync** - All changes appear instantly on everyone's screen
+- **Online Status** - See who's currently viewing the board
+- **Connection Indicators** - Know when you're connected and saving
 
-### Development Workflow
+### 🔐 Access Control
 
-#### Quick iteration (dev only)
+- **Public/Private Boards** - Make boards public or invite-only
+- **Role-Based Permissions** - Owner, Admin, Editor, and Viewer roles
+- **Invite System** - Invite team members via email or shareable links
+- **Member Management** - View, manage, and remove board members
 
-Use `db:push` when rapidly prototyping. This syncs your schema directly but **may drop data**:
+### 📊 Board Management
 
-```bash
-# Edit prisma/schema.prisma, then:
-npm run db:push
-```
+- **Dashboard** - Organize all your boards in one place
+- **Pinned Boards** - Pin frequently used boards for quick access
+- **Board Settings** - Rename, delete, and configure board visibility
+- **Board Cards** - Beautiful preview cards with unique backgrounds
 
-#### Safe migrations (recommended)
+### 💾 Data Persistence
 
-Use `db:migrate` to create versioned migrations that preserve data:
+- **Auto-Save** - All changes are automatically saved to the database
+- **Undo/Redo** - Full history support for canvas actions
+- **Element Persistence** - All drawings, shapes, and notes are saved
 
-```bash
-# Edit prisma/schema.prisma, then:
-npm run db:migrate
-# Enter a name like "add_posts_table"
-```
+### 🎯 User Experience
 
-This creates a migration file in `prisma/migrations/` that you can commit to git.
+- **Keyboard Shortcuts** - Quick tool switching and actions
+- **Responsive Design** - Works on desktop and tablet devices
+- **Modern UI** - Clean, intuitive interface with smooth animations
+- **Connection Status** - Real-time connection and saving indicators
 
-### Common Schema Changes
+## 🚀 Tech Stack
 
-#### Adding a new model
+### Frontend
 
-```prisma
-model posts {
-  id         String   @id @default(cuid())
-  title      String
-  content    String?
-  author_id  String
-  created_at DateTime @default(now())
-  updated_at DateTime @updatedAt
-  author     users    @relation(fields: [author_id], references: [id])
-}
+- **React 19** - Modern React with latest features
+- **TypeScript** - Type-safe development
+- **Vite** - Fast build tool and dev server
+- **React Router** - Client-side routing
+- **TanStack Query** - Data fetching and caching
+- **Tailwind CSS** - Utility-first styling
+- **Lucide React** - Beautiful icon library
 
-// Don't forget to add the relation to users:
-model users {
-  // ... existing fields
-  posts posts[]
-}
-```
+### Backend
 
-Then run:
+- **Express** - Web server framework
+- **tRPC** - End-to-end typesafe APIs
+- **Socket.IO** - Real-time WebSocket communication
+- **Lucia Auth** - Session-based authentication
+- **Prisma** - Type-safe database ORM
+- **PostgreSQL** - Relational database
 
-```bash
-npm run db:migrate
-```
+### Real-Time
 
-#### Adding a field to existing model
+- **Socket.IO Server** - WebSocket server for live updates
+- **Socket.IO Client** - Real-time cursor and element syncing
+- **Room-Based Architecture** - Each board is a separate room
 
-```prisma
-model users {
-  // ... existing fields
-  avatar_url String?  // nullable = safe, no data loss
-}
-```
+## 🎮 Available Scripts
 
-```bash
-npm run db:migrate
-```
+| Command              | Description                              |
+| -------------------- | ---------------------------------------- |
+| `npm run dev`        | Start both frontend and backend          |
+| `npm run dev:client` | Start frontend only (Vite)               |
+| `npm run dev:server` | Start backend only (Express + Socket.IO) |
+| `npm run build`      | Build for production                     |
+| `npm run lint`       | Run ESLint                               |
+| `npm run format`     | Format code with Prettier                |
+| `npm run db:push`    | Push schema changes to database          |
+| `npm run db:migrate` | Create and run migrations                |
+| `npm run db:studio`  | Open Prisma Studio                       |
+| `npm run db:seed`    | Seed the database                        |
 
-#### Adding a required field (with existing data)
+## 🗄️ Database Schema
 
-You need a default value or it will fail:
+### Key Models
 
-```prisma
-model users {
-  // Option 1: Default value
-  role String @default("user")
+- **users** - User accounts and authentication
+- **boards** - Whiteboard boards with settings
+- **board_members** - Board membership and roles
+- **board_invites** - Pending invitations
+- **elements** - Canvas elements (drawings, shapes, text, etc.)
+- **comments** - Comments and threads on elements
 
-  // Option 2: Make it nullable first, backfill, then make required
-  phone String?
-}
-```
+See `prisma/schema.prisma` for the complete schema.
 
-#### Renaming a field
+## 🔌 Real-Time Architecture
 
-Prisma will drop and recreate by default. To preserve data:
+### Socket.IO Rooms
 
-1. Add new field
-2. Migrate
-3. Backfill data with SQL
-4. Remove old field
-5. Migrate again
+Each board is a separate Socket.IO room (`board:${boardId}`). When users join a board:
 
-Or use `@map` to rename only the database column:
+1. Client connects to Socket.IO server
+2. Joins the board room
+3. Receives current users and their cursor positions
+4. Broadcasts cursor movements to other users
+5. Receives element updates in real-time
 
-```prisma
-model users {
-  firstName String @map("first_name")  // Code uses firstName, DB uses first_name
-}
-```
+### Element Syncing
 
-### Resetting the Database
+- **Add** - New elements broadcast to all users
+- **Update** - Element moves/edits sync instantly
+- **Delete** - Removals appear on all screens
+- **Batch Sync** - Undo/redo operations sync
 
-```bash
-# Drop all data and recreate from migrations
-npx prisma migrate reset
+### Cursor Tracking
 
-# Or drop everything and push schema fresh
-npx prisma db push --force-reset
-```
+- Cursor positions updated at ~30fps
+- Each user gets a unique color
+- Cursor names displayed on hover
+- Automatic cleanup on disconnect
 
-### Seeding
+## 🎨 Canvas Features
 
-Edit `prisma/seed.ts` to add seed data:
+### Drawing Tools
 
-```bash
-npm run db:seed
-```
+- **Pencil** - Freehand drawing with smooth strokes
+- **Line** - Straight lines between two points
+- **Rectangle** - Rectangular shapes
+- **Circle** - Circular shapes
+- **Text** - Text boxes with custom styling
+- **Sticky Note** - Colorful sticky notes
+- **Card** - Fancy cards with headers and descriptions
+- **Eraser** - Remove elements by clicking
 
-Seeds run automatically after `prisma migrate reset`.
+### Interaction
 
-### Viewing Data
+- **Select Tool** - Click to select, drag to move
+- **Pan Tool** - Click and drag to pan canvas
+- **Zoom** - Mouse wheel zooms centered on cursor
+- **Keyboard Shortcuts** - Quick tool switching
 
-```bash
-# Open Prisma Studio (GUI)
-npm run db:studio
+## 🔐 Authentication & Authorization
 
-# Or use psql directly
-psql $DATABASE_URL
-```
+### User Roles
 
----
+- **Owner** - Full control, can delete board
+- **Admin** - Can manage members and settings
+- **Editor** - Can edit canvas content
+- **Viewer** - Can view and comment only
 
-## Adding New Features
+### Board Access
 
-### Adding a new tRPC router
+- **Public Boards** - Anyone with the link can view
+- **Private Boards** - Only invited members can access
+- **Invite System** - Email invites or shareable links
 
-1. Create a new router in `server/trpc/routers/`:
-
-   ```typescript
-   // server/trpc/routers/posts.ts
-   import { z } from "zod";
-   import { router, protectedProcedure } from "../trpc";
-
-   export const postsRouter = router({
-     list: protectedProcedure.query(async ({ ctx }) => {
-       return ctx.db.post.findMany();
-     }),
-     create: protectedProcedure
-       .input(z.object({ title: z.string() }))
-       .mutation(async ({ ctx, input }) => {
-         return ctx.db.post.create({ data: input });
-       }),
-   });
-   ```
-
-2. Add it to the main router in `server/trpc/routers/index.ts`:
-
-   ```typescript
-   import { postsRouter } from "./posts";
-
-   export const appRouter = router({
-     auth: authRouter,
-     posts: postsRouter,
-   });
-   ```
-
-3. Use it in your React components:
-
-   ```tsx
-   const { data: posts } = trpc.posts.list.useQuery();
-   ```
-
-## Authentication
-
-The template uses [Lucia](https://lucia-auth.com/) for session-based authentication:
-
-- **Register**: Create account with email/password
-- **Login**: Email/password authentication
-- **Logout**: Session invalidation
-- **Protected Routes**: Use `<ProtectedRoute>` component
-
-### Using auth in components
-
-```tsx
-import { useAuth } from "@/hooks/use-auth";
-
-function MyComponent() {
-  const { user, isAuthenticated, login, logout } = useAuth();
-
-  if (!isAuthenticated) {
-    return <p>Please log in</p>;
-  }
-
-  return <p>Hello, {user.name}!</p>;
-}
-```
-
-### Protecting API routes
-
-Use `protectedProcedure` instead of `publicProcedure` for authenticated endpoints:
-
-```typescript
-export const myRouter = router({
-  // Public - anyone can access
-  publicData: publicProcedure.query(() => "public"),
-
-  // Protected - requires authentication
-  privateData: protectedProcedure.query(({ ctx }) => {
-    return `Hello, ${ctx.user.name}`;
-  }),
-});
-```
-
-## Deployment
-
-### Build for production
-
-```bash
-npm run build
-```
-
-This creates:
-
-- `dist/client/` - Frontend static files
-- `dist/server/` - Compiled backend
-
-### Environment variables for production
-
-```env
-DATABASE_URL="your-production-db-url"
-NODE_ENV=production
-PORT=3000
-```
-
-## License
-
-MIT
+**Made with ❤️ by [Brennon Nuckols](https://bnuckols.com)**

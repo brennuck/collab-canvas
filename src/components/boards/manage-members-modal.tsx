@@ -92,7 +92,7 @@ export function ManageMembersModal({
                 <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-[var(--color-accent)] to-[var(--color-tertiary)] text-xs font-semibold text-white">
                   {getInitials(data.owner.name, data.owner.email)}
                 </div>
-                <div className="flex-1 min-w-0">
+                <div className="min-w-0 flex-1">
                   <p className="truncate font-medium text-[var(--color-text)]">
                     {data.owner.name ?? data.owner.email}
                   </p>
@@ -120,7 +120,7 @@ export function ManageMembersModal({
                     <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[var(--color-accent-muted)] text-xs font-semibold text-[var(--color-accent)]">
                       {getInitials(member.name, member.email)}
                     </div>
-                    <div className="flex-1 min-w-0">
+                    <div className="min-w-0 flex-1">
                       <p className="truncate font-medium text-[var(--color-text)]">
                         {member.name ?? member.email}
                       </p>
@@ -168,12 +168,12 @@ export function ManageMembersModal({
                 {data.pendingInvites.map((invite) => (
                   <div
                     key={invite.id}
-                    className="flex items-center gap-3 rounded-lg border border-dashed border-[var(--color-border)] bg-[var(--color-surface)]/50 p-3"
+                    className="bg-[var(--color-surface)]/50 flex items-center gap-3 rounded-lg border border-dashed border-[var(--color-border)] p-3"
                   >
                     <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[var(--color-surface-hover)] text-xs text-[var(--color-text-muted)]">
                       <Mail className="h-4 w-4" />
                     </div>
-                    <div className="flex-1 min-w-0">
+                    <div className="min-w-0 flex-1">
                       <p className="truncate font-medium text-[var(--color-text)]">
                         {invite.email}
                       </p>
@@ -229,4 +229,3 @@ export function ManageMembersModal({
     </Modal>
   );
 }
-

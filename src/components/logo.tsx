@@ -21,27 +21,12 @@ export function Logo({ size = "md", animate = true }: LogoProps) {
         className="h-full w-full"
       >
         {/* Background canvas square with rounded corners */}
-        <rect
-          x="2"
-          y="2"
-          width="36"
-          height="36"
-          rx="8"
-          fill="url(#canvasGradient)"
-        />
+        <rect x="2" y="2" width="36" height="36" rx="8" fill="url(#canvasGradient)" />
 
         {/* Grid dots pattern */}
         <g opacity="0.3">
           {[10, 20, 30].map((x) =>
-            [10, 20, 30].map((y) => (
-              <circle
-                key={`${x}-${y}`}
-                cx={x}
-                cy={y}
-                r="1"
-                fill="white"
-              />
-            ))
+            [10, 20, 30].map((y) => <circle key={`${x}-${y}`} cx={x} cy={y} r="1" fill="white" />)
           )}
         </g>
 
@@ -122,13 +107,7 @@ export function Logo({ size = "md", animate = true }: LogoProps) {
 
         {/* Gradients */}
         <defs>
-          <linearGradient
-            id="canvasGradient"
-            x1="0"
-            y1="0"
-            x2="40"
-            y2="40"
-          >
+          <linearGradient id="canvasGradient" x1="0" y1="0" x2="40" y2="40">
             <stop offset="0%" stopColor="#1a1a2e" />
             <stop offset="100%" stopColor="#0f0f1a" />
           </linearGradient>
@@ -137,4 +116,3 @@ export function Logo({ size = "md", animate = true }: LogoProps) {
     </div>
   );
 }
-

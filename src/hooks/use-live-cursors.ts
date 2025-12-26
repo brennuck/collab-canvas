@@ -69,7 +69,12 @@ export function useLiveCursors({
   const userColor = userId ? generateUserColor(userId) : "#3b82f6";
 
   // Store callbacks in refs to avoid reconnecting when they change
-  const callbacksRef = useRef({ onElementAdded, onElementUpdated, onElementDeleted, onElementsSynced });
+  const callbacksRef = useRef({
+    onElementAdded,
+    onElementUpdated,
+    onElementDeleted,
+    onElementsSynced,
+  });
   callbacksRef.current = { onElementAdded, onElementUpdated, onElementDeleted, onElementsSynced };
 
   // Generate stable anonymous ID
@@ -217,4 +222,3 @@ export function useLiveCursors({
     broadcastElementsSync,
   };
 }
-
