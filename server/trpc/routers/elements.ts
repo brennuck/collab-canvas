@@ -36,60 +36,58 @@ const dbTypeMap = {
 
 export const elementsRouter = router({
   // Get all elements for a board (public access for public boards)
-  list: publicProcedure
-    .input(z.object({ boardId: z.string() }))
-    .query(async ({ ctx, input }) => {
-      const userId = ctx.user?.id;
+  list: publicProcedure.input(z.object({ boardId: z.string() })).query(async ({ ctx, input }) => {
+    const userId = ctx.user?.id;
 
-      // Find the board
-      const board = await ctx.db.boards.findUnique({
-        where: { id: input.boardId },
-        include: {
-          members: { select: { user_id: true } },
-        },
-      });
+    // Find the board
+    const board = await ctx.db.boards.findUnique({
+      where: { id: input.boardId },
+      include: {
+        members: { select: { user_id: true } },
+      },
+    });
 
-      if (!board) {
-        throw new TRPCError({ code: "NOT_FOUND", message: "Board not found" });
-      }
+    if (!board) {
+      throw new TRPCError({ code: "NOT_FOUND", message: "Board not found" });
+    }
 
-      // Check access: public boards are viewable by anyone
-      const isOwner = userId ? board.owner_id === userId : false;
-      const isMember = userId ? board.members.some((m) => m.user_id === userId) : false;
+    // Check access: public boards are viewable by anyone
+    const isOwner = userId ? board.owner_id === userId : false;
+    const isMember = userId ? board.members.some((m) => m.user_id === userId) : false;
 
-      if (!board.is_public && !isOwner && !isMember) {
-        throw new TRPCError({ code: "FORBIDDEN", message: "Access denied" });
-      }
+    if (!board.is_public && !isOwner && !isMember) {
+      throw new TRPCError({ code: "FORBIDDEN", message: "Access denied" });
+    }
 
-      const elements = await ctx.db.elements.findMany({
-        where: { board_id: input.boardId },
-        orderBy: { z_index: "asc" },
-      });
+    const elements = await ctx.db.elements.findMany({
+      where: { board_id: input.boardId },
+      orderBy: { z_index: "asc" },
+    });
 
-      // Transform DB elements to canvas format
-      return elements.map((el) => {
-        const content = el.content as Record<string, unknown>;
-        const canvasType = content.canvasType as string || dbTypeMap[el.type] || "pencil";
-        
-        return {
-          id: el.id,
-          type: canvasType,
-          x: el.x,
-          y: el.y,
-          width: el.width,
-          height: el.height,
-          points: content.points as Array<{ x: number; y: number }> | undefined,
-          endX: content.endX as number | undefined,
-          endY: content.endY as number | undefined,
-          text: content.text as string | undefined,
-          header: content.header as string | undefined,
-          description: content.description as string | undefined,
-          color: (content.color as string) || "#3b82f6",
-          strokeWidth: (content.strokeWidth as number) || 4,
-          fill: content.fill as string | undefined,
-        };
-      });
-    }),
+    // Transform DB elements to canvas format
+    return elements.map((el) => {
+      const content = el.content as Record<string, unknown>;
+      const canvasType = (content.canvasType as string) || dbTypeMap[el.type] || "pencil";
+
+      return {
+        id: el.id,
+        type: canvasType,
+        x: el.x,
+        y: el.y,
+        width: el.width,
+        height: el.height,
+        points: content.points as Array<{ x: number; y: number }> | undefined,
+        endX: content.endX as number | undefined,
+        endY: content.endY as number | undefined,
+        text: content.text as string | undefined,
+        header: content.header as string | undefined,
+        description: content.description as string | undefined,
+        color: (content.color as string) || "#3b82f6",
+        strokeWidth: (content.strokeWidth as number) || 4,
+        fill: content.fill as string | undefined,
+      };
+    });
+  }),
 
   // Create a new element
   create: protectedProcedure
@@ -342,4 +340,3 @@ export const elementsRouter = router({
       return { success: true, count: input.elements.length };
     }),
 });
-
