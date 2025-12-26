@@ -336,10 +336,10 @@ export function HomePage() {
         <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="mx-auto mb-16 max-w-2xl text-center">
             <div className="mb-4 flex items-center justify-center gap-2">
-              <div className="border-[var(--color-accent)]/30 inline-flex items-center gap-2 rounded-full border bg-[var(--color-accent-muted)] px-4 py-2">
+              {/* <div className="border-[var(--color-accent)]/30 inline-flex items-center gap-2 rounded-full border bg-[var(--color-accent-muted)] px-4 py-2">
                 <Sparkles className="h-4 w-4 text-[var(--color-accent)]" />
                 <span className="text-sm font-medium text-[var(--color-accent)]">AI-Powered</span>
-              </div>
+              </div> */}
               <div className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/30 bg-amber-500/10 px-3 py-2">
                 <span className="relative flex h-2 w-2">
                   <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-400 opacity-75"></span>
