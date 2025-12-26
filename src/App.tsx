@@ -4,6 +4,7 @@ import { HomePage } from "@/pages/home";
 import { LoginPage } from "@/pages/login";
 import { RegisterPage } from "@/pages/register";
 import { DashboardPage } from "@/pages/dashboard";
+import { ProfilePage } from "@/pages/profile";
 import { ProtectedRoute } from "@/components/auth/protected-route";
 
 function App() {
@@ -18,6 +19,14 @@ function App() {
           element={
             <ProtectedRoute>
               <DashboardPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/profile"
+          element={
+            <ProtectedRoute>
+              <ProfilePage />
             </ProtectedRoute>
           }
         />

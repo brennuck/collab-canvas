@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { Outlet, Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/use-auth";
-import { LogOut, LayoutDashboard, ChevronDown } from "lucide-react";
+import { LogOut, LayoutDashboard, ChevronDown, User } from "lucide-react";
 import { Logo } from "@/components/logo";
 
 export function RootLayout() {
@@ -77,6 +77,15 @@ export function RootLayout() {
                       <LayoutDashboard className="mr-2 h-4 w-4" />
                       Dashboard
                     </Link>
+                    <Link
+                      to="/profile"
+                      onClick={() => setDropdownOpen(false)}
+                      className="flex items-center px-4 py-2.5 text-sm text-[var(--color-text-muted)] transition-colors hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text)]"
+                    >
+                      <User className="mr-2 h-4 w-4" />
+                      Profile
+                    </Link>
+                    <div className="my-1 border-t border-[var(--color-border)]" />
                     <button
                       onClick={handleLogout}
                       disabled={isLoggingOut}

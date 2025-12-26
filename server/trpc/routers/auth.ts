@@ -106,4 +106,58 @@ export const authRouter = router({
       name: ctx.user.name,
     };
   }),
+
+  // Update profile (name)
+  updateProfile: protectedProcedure
+    .input(
+      z.object({
+        name: z.string().min(2, "Name must be at least 2 characters").max(100),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const user = await ctx.db.users.update({
+        where: { id: ctx.user.id },
+        data: { name: input.name },
+      });
+
+      return {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+      };
+    }),
+
+  // Change password
+  changePassword: protectedProcedure
+    .input(
+      z.object({
+        currentPassword: z.string().min(1, "Current password is required"),
+        newPassword: z.string().min(8, "New password must be at least 8 characters"),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      // Get user with password hash
+      const user = await ctx.db.users.findUnique({
+        where: { id: ctx.user.id },
+      });
+
+      if (!user) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "User not found" });
+      }
+
+      // Verify current password
+      const validPassword = await verify(user.password_hash, input.currentPassword);
+      if (!validPassword) {
+        throw new TRPCError({ code: "UNAUTHORIZED", message: "Current password is incorrect" });
+      }
+
+      // Hash new password and update
+      const newPasswordHash = await hash(input.newPassword);
+      await ctx.db.users.update({
+        where: { id: ctx.user.id },
+        data: { password_hash: newPasswordHash },
+      });
+
+      return { success: true };
+    }),
 });
