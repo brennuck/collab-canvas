@@ -6,6 +6,9 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { BoardCard } from "@/components/boards/board-card";
 import { CreateBoardModal } from "@/components/boards/create-board-modal";
 import { RenameBoardModal } from "@/components/boards/rename-board-modal";
+import { InviteModal } from "@/components/boards/invite-modal";
+import { ManageMembersModal } from "@/components/boards/manage-members-modal";
+import { PendingInvites } from "@/components/boards/pending-invites";
 import { getInitials } from "@/lib/format";
 import type { Board, OwnedBoardResponse, SharedBoardResponse } from "@/types/board";
 import { Plus, Users, FolderOpen, Pin, Loader2 } from "lucide-react";
@@ -54,6 +57,12 @@ export function DashboardPage() {
     onSuccess: () => utils.boards.list.invalidate(),
   });
 
+  const inviteToBoard = trpc.boards.invite.useMutation({
+    onSuccess: () => {
+      setInviteModal({ open: false, board: null });
+    },
+  });
+
   // Modal states
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [renameModal, setRenameModal] = useState<{ open: boolean; board: Board | null }>({
@@ -65,6 +74,17 @@ export function DashboardPage() {
     board: null,
   });
   const [leaveModal, setLeaveModal] = useState<{ open: boolean; board: Board | null }>({
+    open: false,
+    board: null,
+  });
+  const [inviteModal, setInviteModal] = useState<{ open: boolean; board: Board | null }>({
+    open: false,
+    board: null,
+  });
+  const [manageMembersModal, setManageMembersModal] = useState<{
+    open: boolean;
+    board: Board | null;
+  }>({
     open: false,
     board: null,
   });
@@ -123,6 +143,11 @@ export function DashboardPage() {
     setRenameModal({ open: true, board });
   };
 
+  const handleInvite = (email: string, role: "viewer" | "editor" | "admin") => {
+    if (!inviteModal.board) return;
+    inviteToBoard.mutate({ boardId: inviteModal.board.id, email, role });
+  };
+
   return (
     <div className="min-h-[calc(100vh-3.5rem)] bg-[var(--color-surface)]">
       <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
@@ -151,6 +176,9 @@ export function DashboardPage() {
           </button>
         </div>
 
+        {/* Pending Invites - always shown if there are any */}
+        <PendingInvites />
+
         {isLoading ? (
           <div className="flex items-center justify-center py-20">
             <Loader2 className="h-8 w-8 animate-spin text-[var(--color-accent)]" />
@@ -173,6 +201,8 @@ export function DashboardPage() {
                       onRename={openRenameModal}
                       onDelete={(b) => setDeleteModal({ open: true, board: b })}
                       onLeave={(b) => setLeaveModal({ open: true, board: b })}
+                      onInvite={(b) => setInviteModal({ open: true, board: b })}
+                      onManageMembers={(b) => setManageMembersModal({ open: true, board: b })}
                     />
                   ))}
                 </div>
@@ -206,6 +236,8 @@ export function DashboardPage() {
                       onRename={openRenameModal}
                       onDelete={(b) => setDeleteModal({ open: true, board: b })}
                       onLeave={(b) => setLeaveModal({ open: true, board: b })}
+                      onInvite={(b) => setInviteModal({ open: true, board: b })}
+                      onManageMembers={(b) => setManageMembersModal({ open: true, board: b })}
                     />
                   ))}
                 </div>
@@ -297,6 +329,29 @@ export function DashboardPage() {
         confirmText="Leave"
         confirmVariant="danger"
         isLoading={leaveBoard.isPending}
+      />
+
+      {/* Invite Modal */}
+      <InviteModal
+        isOpen={inviteModal.open}
+        onClose={() => setInviteModal({ open: false, board: null })}
+        onSubmit={handleInvite}
+        boardName={inviteModal.board?.name ?? ""}
+        isLoading={inviteToBoard.isPending}
+      />
+
+      {/* Manage Members Modal */}
+      <ManageMembersModal
+        isOpen={manageMembersModal.open}
+        onClose={() => setManageMembersModal({ open: false, board: null })}
+        boardId={manageMembersModal.board?.id ?? ""}
+        boardName={manageMembersModal.board?.name ?? ""}
+        onInvite={() => {
+          setManageMembersModal({ open: false, board: null });
+          if (manageMembersModal.board) {
+            setInviteModal({ open: true, board: manageMembersModal.board });
+          }
+        }}
       />
     </div>
   );

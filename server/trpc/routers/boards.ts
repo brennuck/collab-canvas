@@ -207,4 +207,304 @@ export const boardsRouter = router({
 
     return { success: true };
   }),
+
+  // ============ INVITES ============
+
+  // Send an invite to an email
+  invite: protectedProcedure
+    .input(
+      z.object({
+        boardId: z.string(),
+        email: z.string().email("Invalid email address"),
+        role: z.enum(["viewer", "editor", "admin"]).default("editor"),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      // Check if user owns the board
+      const board = await ctx.db.boards.findUnique({
+        where: { id: input.boardId },
+      });
+
+      if (!board) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Board not found" });
+      }
+
+      if (board.owner_id !== ctx.user.id) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Only the board owner can invite people",
+        });
+      }
+
+      // Can't invite yourself
+      if (input.email.toLowerCase() === ctx.user.email.toLowerCase()) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "You can't invite yourself",
+        });
+      }
+
+      // Check if user is already a member
+      const existingUser = await ctx.db.users.findUnique({
+        where: { email: input.email.toLowerCase() },
+      });
+
+      if (existingUser) {
+        const existingMember = await ctx.db.board_members.findUnique({
+          where: {
+            board_id_user_id: {
+              board_id: input.boardId,
+              user_id: existingUser.id,
+            },
+          },
+        });
+
+        if (existingMember) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "This user is already a member of this board",
+          });
+        }
+      }
+
+      // Create or update the invite
+      const invite = await ctx.db.board_invites.upsert({
+        where: {
+          board_id_invited_email: {
+            board_id: input.boardId,
+            invited_email: input.email.toLowerCase(),
+          },
+        },
+        create: {
+          board_id: input.boardId,
+          invited_email: input.email.toLowerCase(),
+          invited_by: ctx.user.id,
+          role: input.role,
+        },
+        update: {
+          role: input.role,
+          invited_by: ctx.user.id,
+        },
+      });
+
+      return invite;
+    }),
+
+  // Get pending invites for the current user
+  pendingInvites: protectedProcedure.query(async ({ ctx }) => {
+    const invites = await ctx.db.board_invites.findMany({
+      where: {
+        invited_email: ctx.user.email.toLowerCase(),
+      },
+      include: {
+        board: {
+          include: {
+            owner: { select: { name: true, email: true } },
+          },
+        },
+      },
+      orderBy: { created_at: "desc" },
+    });
+
+    return invites.map((invite) => ({
+      id: invite.id,
+      boardId: invite.board_id,
+      boardName: invite.board.name,
+      ownerName: invite.board.owner.name ?? invite.board.owner.email,
+      role: invite.role,
+      createdAt: invite.created_at,
+    }));
+  }),
+
+  // Accept an invite
+  acceptInvite: protectedProcedure
+    .input(z.object({ inviteId: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      const invite = await ctx.db.board_invites.findUnique({
+        where: { id: input.inviteId },
+      });
+
+      if (!invite) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Invite not found" });
+      }
+
+      if (invite.invited_email.toLowerCase() !== ctx.user.email.toLowerCase()) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "This invite is not for you",
+        });
+      }
+
+      // Add user as a member
+      await ctx.db.board_members.create({
+        data: {
+          board_id: invite.board_id,
+          user_id: ctx.user.id,
+          role: invite.role,
+        },
+      });
+
+      // Delete the invite
+      await ctx.db.board_invites.delete({
+        where: { id: input.inviteId },
+      });
+
+      return { success: true, boardId: invite.board_id };
+    }),
+
+  // Decline an invite
+  declineInvite: protectedProcedure
+    .input(z.object({ inviteId: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      const invite = await ctx.db.board_invites.findUnique({
+        where: { id: input.inviteId },
+      });
+
+      if (!invite) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Invite not found" });
+      }
+
+      if (invite.invited_email.toLowerCase() !== ctx.user.email.toLowerCase()) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "This invite is not for you",
+        });
+      }
+
+      // Delete the invite
+      await ctx.db.board_invites.delete({
+        where: { id: input.inviteId },
+      });
+
+      return { success: true };
+    }),
+
+  // Get board members and pending invites (for board management)
+  getBoardMembers: protectedProcedure
+    .input(z.object({ boardId: z.string() }))
+    .query(async ({ ctx, input }) => {
+      // Check if user owns the board
+      const board = await ctx.db.boards.findUnique({
+        where: { id: input.boardId },
+        include: {
+          owner: { select: { id: true, name: true, email: true, avatar_url: true } },
+        },
+      });
+
+      if (!board) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Board not found" });
+      }
+
+      if (board.owner_id !== ctx.user.id) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Only the board owner can view members",
+        });
+      }
+
+      // Get current members
+      const members = await ctx.db.board_members.findMany({
+        where: { board_id: input.boardId },
+        include: {
+          user: { select: { id: true, name: true, email: true, avatar_url: true } },
+        },
+        orderBy: { joined_at: "asc" },
+      });
+
+      // Get pending invites
+      const pendingInvites = await ctx.db.board_invites.findMany({
+        where: { board_id: input.boardId },
+        orderBy: { created_at: "desc" },
+      });
+
+      return {
+        owner: {
+          id: board.owner.id,
+          name: board.owner.name,
+          email: board.owner.email,
+          avatarUrl: board.owner.avatar_url,
+          role: "owner" as const,
+        },
+        members: members.map((m) => ({
+          id: m.user.id,
+          name: m.user.name,
+          email: m.user.email,
+          avatarUrl: m.user.avatar_url,
+          role: m.role,
+          joinedAt: m.joined_at,
+        })),
+        pendingInvites: pendingInvites.map((inv) => ({
+          id: inv.id,
+          email: inv.invited_email,
+          role: inv.role,
+          createdAt: inv.created_at,
+        })),
+      };
+    }),
+
+  // Cancel a pending invite (owner only)
+  cancelInvite: protectedProcedure
+    .input(z.object({ inviteId: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      const invite = await ctx.db.board_invites.findUnique({
+        where: { id: input.inviteId },
+        include: { board: true },
+      });
+
+      if (!invite) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Invite not found" });
+      }
+
+      if (invite.board.owner_id !== ctx.user.id) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Only the board owner can cancel invites",
+        });
+      }
+
+      await ctx.db.board_invites.delete({
+        where: { id: input.inviteId },
+      });
+
+      return { success: true };
+    }),
+
+  // Remove a member from a board (owner only)
+  removeMember: protectedProcedure
+    .input(z.object({ boardId: z.string(), userId: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      const board = await ctx.db.boards.findUnique({
+        where: { id: input.boardId },
+      });
+
+      if (!board) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Board not found" });
+      }
+
+      if (board.owner_id !== ctx.user.id) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Only the board owner can remove members",
+        });
+      }
+
+      // Can't remove the owner
+      if (input.userId === board.owner_id) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Cannot remove the board owner",
+        });
+      }
+
+      await ctx.db.board_members.delete({
+        where: {
+          board_id_user_id: {
+            board_id: input.boardId,
+            user_id: input.userId,
+          },
+        },
+      });
+
+      return { success: true };
+    }),
 });

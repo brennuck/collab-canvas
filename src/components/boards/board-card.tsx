@@ -10,6 +10,8 @@ import {
   Pencil,
   Pin,
   PinOff,
+  UserPlus,
+  Settings,
 } from "lucide-react";
 import type { Board } from "@/types/board";
 import { formatRelativeTime } from "@/lib/format";
@@ -20,9 +22,11 @@ interface BoardCardProps {
   onRename: (board: Board) => void;
   onDelete: (board: Board) => void;
   onLeave: (board: Board) => void;
+  onInvite?: (board: Board) => void;
+  onManageMembers?: (board: Board) => void;
 }
 
-export function BoardCard({ board, onTogglePin, onRename, onDelete, onLeave }: BoardCardProps) {
+export function BoardCard({ board, onTogglePin, onRename, onDelete, onLeave, onInvite, onManageMembers }: BoardCardProps) {
   const [menuOpen, setMenuOpen] = useState(false);
 
   return (
@@ -106,6 +110,30 @@ export function BoardCard({ board, onTogglePin, onRename, onDelete, onLeave }: B
                   </button>
                   {board.isOwned ? (
                     <>
+                      {onInvite && (
+                        <button
+                          onClick={() => {
+                            onInvite(board);
+                            setMenuOpen(false);
+                          }}
+                          className="flex w-full items-center gap-2 px-3 py-2 text-sm text-[var(--color-text-muted)] hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text)]"
+                        >
+                          <UserPlus className="h-4 w-4" />
+                          Invite
+                        </button>
+                      )}
+                      {onManageMembers && (
+                        <button
+                          onClick={() => {
+                            onManageMembers(board);
+                            setMenuOpen(false);
+                          }}
+                          className="flex w-full items-center gap-2 px-3 py-2 text-sm text-[var(--color-text-muted)] hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text)]"
+                        >
+                          <Settings className="h-4 w-4" />
+                          Manage Members
+                        </button>
+                      )}
                       <button
                         onClick={() => {
                           onRename(board);

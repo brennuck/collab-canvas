@@ -94,19 +94,18 @@ model board_members {
 }
 
 model board_invites {
-  id         String    @id @default(cuid())
-  board_id   String
-  code       String    @unique @default(cuid()) // The invite link code
-  role       BoardRole @default(editor) // Role granted when invite is used
-  expires_at DateTime?
-  max_uses   Int?      // null = unlimited
-  use_count  Int       @default(0)
-  created_at DateTime  @default(now())
+  id            String    @id @default(cuid())
+  board_id      String
+  invited_email String    // Email of the person being invited
+  invited_by    String    // User ID who sent the invite
+  role          BoardRole @default(editor)
+  created_at    DateTime  @default(now())
 
-  board      boards    @relation(fields: [board_id], references: [id], onDelete: Cascade)
+  board         boards    @relation(fields: [board_id], references: [id], onDelete: Cascade)
 
+  @@unique([board_id, invited_email]) // Can't invite same email twice to same board
   @@index([board_id])
-  @@index([code])
+  @@index([invited_email])
 }
 
 // ============ CANVAS ELEMENTS ============
