@@ -3,6 +3,65 @@ import { TRPCError } from "@trpc/server";
 import { router, protectedProcedure } from "../trpc";
 
 export const boardsRouter = router({
+  // Get a single board by ID
+  get: protectedProcedure.input(z.object({ id: z.string() })).query(async ({ ctx, input }) => {
+    const board = await ctx.db.boards.findUnique({
+      where: { id: input.id },
+      include: {
+        owner: { select: { id: true, name: true, email: true, avatar_url: true } },
+        members: {
+          include: {
+            user: { select: { id: true, name: true, email: true, avatar_url: true } },
+          },
+        },
+      },
+    });
+
+    if (!board) {
+      throw new TRPCError({ code: "NOT_FOUND", message: "Board not found" });
+    }
+
+    // Check if user has access (owner or member)
+    const isOwner = board.owner_id === ctx.user.id;
+    const isMember = board.members.some((m) => m.user_id === ctx.user.id);
+
+    if (!isOwner && !isMember) {
+      throw new TRPCError({
+        code: "FORBIDDEN",
+        message: "You don't have access to this board",
+      });
+    }
+
+    // Get user's role
+    const userRole = isOwner
+      ? "owner"
+      : (board.members.find((m) => m.user_id === ctx.user.id)?.role ?? "viewer");
+
+    return {
+      id: board.id,
+      name: board.name,
+      description: board.description,
+      isPublic: board.is_public,
+      createdAt: board.created_at,
+      updatedAt: board.updated_at,
+      owner: {
+        id: board.owner.id,
+        name: board.owner.name,
+        email: board.owner.email,
+        avatarUrl: board.owner.avatar_url,
+      },
+      members: board.members.map((m) => ({
+        id: m.user.id,
+        name: m.user.name,
+        email: m.user.email,
+        avatarUrl: m.user.avatar_url,
+        role: m.role,
+      })),
+      userRole,
+      isOwner,
+    };
+  }),
+
   // Get all boards for the current user (owned + shared)
   list: protectedProcedure.query(async ({ ctx }) => {
     const userId = ctx.user.id;

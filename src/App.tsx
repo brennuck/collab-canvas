@@ -5,6 +5,7 @@ import { LoginPage } from "@/pages/login";
 import { RegisterPage } from "@/pages/register";
 import { DashboardPage } from "@/pages/dashboard";
 import { ProfilePage } from "@/pages/profile";
+import { BoardPage } from "@/pages/board";
 import { ProtectedRoute } from "@/components/auth/protected-route";
 
 function App() {
@@ -31,6 +32,16 @@ function App() {
           }
         />
       </Route>
+
+      {/* Board page without the standard layout (full-screen canvas) */}
+      <Route
+        path="/board/:id"
+        element={
+          <ProtectedRoute>
+            <BoardPage />
+          </ProtectedRoute>
+        }
+      />
     </Routes>
   );
 }
