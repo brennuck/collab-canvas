@@ -37,7 +37,7 @@ export function BoardPage() {
   const [canvasOffset, setCanvasOffset] = useState({ x: 0, y: 0 });
 
   // Live cursors
-  const { cursors, updateCursor, isConnected } = useLiveCursors({
+  const { cursors, updateCursor, isConnected, onlineUserIds, onlineCount } = useLiveCursors({
     boardId: id || "",
     userId: user?.id || null,
     userName: user?.name || user?.email || "Anonymous",
@@ -253,6 +253,8 @@ export function BoardPage() {
         onRedo={canEdit ? handleRedo : undefined}
         isConnected={isConnected}
         isSaving={isSaving || renameBoard.isPending}
+        onlineUserIds={onlineUserIds}
+        onlineCount={onlineCount}
       />
 
       <div className="relative flex flex-1 overflow-hidden">

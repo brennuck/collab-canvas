@@ -46,6 +46,8 @@ interface BoardHeaderProps {
   onRedo?: () => void;
   isConnected?: boolean;
   isSaving?: boolean;
+  onlineUserIds?: Set<string>;
+  onlineCount?: number;
 }
 
 export function BoardHeader({
@@ -67,6 +69,8 @@ export function BoardHeader({
   onRedo,
   isConnected = true,
   isSaving = false,
+  onlineUserIds = new Set(),
+  onlineCount: externalOnlineCount,
 }: BoardHeaderProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState(boardName);
@@ -99,8 +103,11 @@ export function BoardHeader({
     }
   };
 
-  // Get online members count
-  const onlineCount = members.filter((m) => m.isOnline !== false).length;
+  // Check if a member is online
+  const isMemberOnline = (memberId: string) => onlineUserIds.has(memberId);
+  
+  // Use external online count from socket, or fallback to counting from set
+  const onlineCount = externalOnlineCount ?? onlineUserIds.size;
 
   return (
     <header className="flex h-12 shrink-0 items-center justify-between border-b border-[var(--color-border)] bg-[var(--color-surface-elevated)] px-3">
@@ -221,19 +228,26 @@ export function BoardHeader({
 
         {/* Member Avatars */}
         <div className="flex -space-x-2">
-          {members.slice(0, 5).map((member, i) => (
-            <div
-              key={member.id}
-              className="relative flex h-7 w-7 items-center justify-center rounded-full border-2 border-[var(--color-surface-elevated)] bg-gradient-to-br from-[var(--color-accent)] to-[var(--color-tertiary)] text-[10px] font-semibold text-white"
-              style={{ zIndex: members.length - i }}
-              title={`${member.name ?? member.email}${member.isOnline !== false ? " (online)" : ""}`}
-            >
-              {getInitials(member.name, member.email)}
-              {member.isOnline !== false && (
-                <div className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-[var(--color-surface-elevated)] bg-emerald-500" />
-              )}
-            </div>
-          ))}
+          {members.slice(0, 5).map((member, i) => {
+            const isOnline = isMemberOnline(member.id);
+            return (
+              <div
+                key={member.id}
+                className={`relative flex h-7 w-7 items-center justify-center rounded-full border-2 border-[var(--color-surface-elevated)] text-[10px] font-semibold text-white ${
+                  isOnline
+                    ? "bg-gradient-to-br from-[var(--color-accent)] to-[var(--color-tertiary)]"
+                    : "bg-[var(--color-text-muted)]/50"
+                }`}
+                style={{ zIndex: members.length - i }}
+                title={`${member.name ?? member.email}${isOnline ? " (online)" : " (offline)"}`}
+              >
+                {getInitials(member.name, member.email)}
+                {isOnline && (
+                  <div className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-[var(--color-surface-elevated)] bg-emerald-500" />
+                )}
+              </div>
+            );
+          })}
           {members.length > 5 && (
             <div className="flex h-7 w-7 items-center justify-center rounded-full border-2 border-[var(--color-surface-elevated)] bg-[var(--color-surface-hover)] text-[10px] font-semibold text-[var(--color-text-muted)]">
               +{members.length - 5}

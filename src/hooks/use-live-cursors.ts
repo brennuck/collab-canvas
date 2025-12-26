@@ -62,8 +62,6 @@ export function useLiveCursors({
   useEffect(() => {
     if (!enabled || !boardId) return;
 
-    console.log("[LiveCursors] Connecting to socket...");
-
     const socket = io("http://localhost:3000", {
       withCredentials: true,
       transports: ["websocket", "polling"],
@@ -72,7 +70,6 @@ export function useLiveCursors({
     socketRef.current = socket;
 
     socket.on("connect", () => {
-      console.log("[LiveCursors] Connected! Socket ID:", socket.id);
       setIsConnected(true);
 
       // Join the board room
@@ -84,24 +81,22 @@ export function useLiveCursors({
       });
     });
 
-    socket.on("connect_error", (error) => {
-      console.error("[LiveCursors] Connection error:", error);
-    });
-
-    socket.on("disconnect", (reason) => {
-      console.log("[LiveCursors] Disconnected:", reason);
+    socket.on("disconnect", () => {
       setIsConnected(false);
     });
 
     // Receive current users when joining
     socket.on("current-users", (users: CursorData[]) => {
-      console.log("[LiveCursors] Current users:", users);
       setCursors(new Map(users.map((u) => [u.odId, u])));
     });
 
-    // New user joined
+    // New user joined - add them to cursors with initial position
     socket.on("user-joined", (user: { odId: string; odName: string; odColor: string }) => {
-      console.log(`[LiveCursors] ${user.odName} joined the board`);
+      setCursors((prev) => {
+        const next = new Map(prev);
+        next.set(user.odId, { ...user, x: 0, y: 0 });
+        return next;
+      });
     });
 
     // Cursor updates from other users
@@ -115,7 +110,6 @@ export function useLiveCursors({
 
     // User left
     socket.on("user-left", (data: { odId: string }) => {
-      console.log("[LiveCursors] User left:", data.odId);
       setCursors((prev) => {
         const next = new Map(prev);
         next.delete(data.odId);
@@ -124,7 +118,6 @@ export function useLiveCursors({
     });
 
     return () => {
-      console.log("[LiveCursors] Cleaning up...");
       socket.emit("leave-board");
       socket.disconnect();
       socketRef.current = null;
@@ -147,12 +140,19 @@ export function useLiveCursors({
     []
   );
 
+  // Get all online user IDs (including self)
+  const onlineUserIds = new Set(Array.from(cursors.keys()));
+  if (isConnected) {
+    onlineUserIds.add(odId);
+  }
+
   return {
     cursors: Array.from(cursors.values()).filter((c) => c.odId !== odId),
     isConnected,
     updateCursor,
     userColor,
-    onlineCount: cursors.size + 1, // Include self
+    onlineCount: onlineUserIds.size,
+    onlineUserIds,
   };
 }
 

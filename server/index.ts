@@ -34,8 +34,6 @@ interface CursorData {
 const boardUsers = new Map<string, Map<string, CursorData>>();
 
 io.on("connection", (socket) => {
-  console.log("[Socket.IO] New connection:", socket.id);
-  
   let currentBoardId: string | null = null;
   let odId: string | null = null;
   let odName: string | null = null;
@@ -43,8 +41,6 @@ io.on("connection", (socket) => {
 
   // Join a board room
   socket.on("join-board", (data: { boardId: string; odId: string; odName: string; odColor: string }) => {
-    console.log("[Socket.IO] User joining board:", data);
-    
     currentBoardId = data.boardId;
     odId = data.odId;
     odName = data.odName;
@@ -58,7 +54,7 @@ io.on("connection", (socket) => {
     }
 
     const users = boardUsers.get(data.boardId)!;
-    
+
     // Send current users to the new joiner BEFORE adding them
     socket.emit("current-users", Array.from(users.values()));
 
@@ -78,8 +74,6 @@ io.on("connection", (socket) => {
       odName: data.odName,
       odColor: data.odColor,
     });
-
-    console.log("[Socket.IO] Board users:", Array.from(users.keys()));
   });
 
   // Cursor movement
@@ -106,7 +100,6 @@ io.on("connection", (socket) => {
 
   // Leave board
   socket.on("leave-board", () => {
-    console.log("[Socket.IO] User leaving board:", odId);
     if (currentBoardId && odId) {
       const users = boardUsers.get(currentBoardId);
       if (users) {
@@ -125,7 +118,6 @@ io.on("connection", (socket) => {
 
   // Disconnect
   socket.on("disconnect", () => {
-    console.log("[Socket.IO] Disconnected:", socket.id);
     if (currentBoardId && odId) {
       const users = boardUsers.get(currentBoardId);
       if (users) {
