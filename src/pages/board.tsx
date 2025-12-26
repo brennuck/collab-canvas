@@ -1,16 +1,20 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { trpc } from "@/lib/trpc";
-import { Canvas, type Tool } from "@/components/canvas/canvas";
+import { Canvas, type Tool, type CanvasRef } from "@/components/canvas/canvas";
 import { ToolsSidebar, tools } from "@/components/canvas/tools-sidebar";
 import { BoardHeader } from "@/components/canvas/board-header";
 import { StyleToolbar } from "@/components/canvas/style-toolbar";
 import { QuickActions } from "@/components/canvas/quick-actions";
+import { InviteModal } from "@/components/boards/invite-modal";
+import { ConfirmModal } from "@/components/ui/modal";
 import { ArrowLeft, Loader2 } from "lucide-react";
 
 export function BoardPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const utils = trpc.useUtils();
+  const canvasRef = useRef<CanvasRef>(null);
 
   // Canvas state
   const [activeTool, setActiveTool] = useState<Tool>("pencil");
@@ -18,11 +22,50 @@ export function BoardPage() {
   const [activeColor, setActiveColor] = useState("#3b82f6");
   const [activeStrokeWidth, setActiveStrokeWidth] = useState(4);
 
+  // History state (synced from canvas ref)
+  const [canUndo, setCanUndo] = useState(false);
+  const [canRedo, setCanRedo] = useState(false);
+
+  // Modal states
+  const [shareModalOpen, setShareModalOpen] = useState(false);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+
   const {
     data: board,
     isLoading,
     error,
   } = trpc.boards.get.useQuery({ id: id! }, { enabled: !!id });
+
+  // Mutations
+  const renameBoard = trpc.boards.rename.useMutation({
+    onSuccess: () => {
+      utils.boards.get.invalidate({ id: id! });
+    },
+  });
+
+  const deleteBoard = trpc.boards.delete.useMutation({
+    onSuccess: () => {
+      navigate("/dashboard");
+    },
+  });
+
+  const inviteToBoard = trpc.boards.invite.useMutation({
+    onSuccess: () => {
+      setShareModalOpen(false);
+      utils.boards.get.invalidate({ id: id! });
+    },
+  });
+
+  // Sync history state from canvas ref
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (canvasRef.current) {
+        setCanUndo(canvasRef.current.canUndo);
+        setCanRedo(canvasRef.current.canRedo);
+      }
+    }, 100);
+    return () => clearInterval(interval);
+  }, []);
 
   // Keyboard shortcuts
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -31,11 +74,37 @@ export function BoardPage() {
       return;
     }
 
+    // Undo: Ctrl+Z or Cmd+Z
+    if ((e.ctrlKey || e.metaKey) && e.key === "z" && !e.shiftKey) {
+      e.preventDefault();
+      canvasRef.current?.undo();
+      return;
+    }
+
+    // Redo: Ctrl+Shift+Z or Cmd+Shift+Z or Ctrl+Y
+    if (
+      ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === "z") ||
+      ((e.ctrlKey || e.metaKey) && e.key === "y")
+    ) {
+      e.preventDefault();
+      canvasRef.current?.redo();
+      return;
+    }
+
+    // Tool shortcuts
     const key = e.key.toLowerCase();
     const tool = tools.find((t) => t.shortcut?.toLowerCase() === key);
     if (tool) {
       setActiveTool(tool.id);
     }
+  };
+
+  const handleUndo = () => {
+    canvasRef.current?.undo();
+  };
+
+  const handleRedo = () => {
+    canvasRef.current?.redo();
   };
 
   if (isLoading) {
@@ -63,7 +132,22 @@ export function BoardPage() {
     );
   }
 
-  const allMembers = [{ ...board.owner, role: "owner" as const }, ...board.members];
+  const allMembers = [
+    { ...board.owner, role: "owner" as const, isOnline: true },
+    ...board.members.map((m) => ({ ...m, isOnline: true })),
+  ];
+
+  const handleRename = (name: string) => {
+    renameBoard.mutate({ id: id!, name });
+  };
+
+  const handleInvite = (email: string, role: "viewer" | "editor" | "admin") => {
+    inviteToBoard.mutate({ boardId: id!, email, role });
+  };
+
+  const handleDelete = () => {
+    deleteBoard.mutate({ id: id! });
+  };
 
   return (
     <div
@@ -79,12 +163,22 @@ export function BoardPage() {
         onZoomIn={() => setZoom((z) => Math.min(400, z + 25))}
         onZoomOut={() => setZoom((z) => Math.max(25, z - 25))}
         onZoomReset={() => setZoom(100)}
+        onRename={handleRename}
+        onShare={() => setShareModalOpen(true)}
+        onDelete={() => setDeleteModalOpen(true)}
+        canUndo={canUndo}
+        canRedo={canRedo}
+        onUndo={handleUndo}
+        onRedo={handleRedo}
+        isConnected={true}
+        isSaving={renameBoard.isPending}
       />
 
       <div className="relative flex flex-1 overflow-hidden">
         <ToolsSidebar activeTool={activeTool} onToolChange={setActiveTool} />
 
         <Canvas
+          ref={canvasRef}
           activeTool={activeTool}
           color={activeColor}
           strokeWidth={activeStrokeWidth}
@@ -101,6 +195,27 @@ export function BoardPage() {
 
         <QuickActions onFitToScreen={() => setZoom(100)} />
       </div>
+
+      {/* Share/Invite Modal */}
+      <InviteModal
+        isOpen={shareModalOpen}
+        onClose={() => setShareModalOpen(false)}
+        onSubmit={handleInvite}
+        boardName={board.name}
+        isLoading={inviteToBoard.isPending}
+      />
+
+      {/* Delete Confirmation */}
+      <ConfirmModal
+        isOpen={deleteModalOpen}
+        onClose={() => setDeleteModalOpen(false)}
+        onConfirm={handleDelete}
+        title="Delete board"
+        message={`Are you sure you want to delete "${board.name}"? This action cannot be undone and all content will be permanently lost.`}
+        confirmText="Delete"
+        confirmVariant="danger"
+        isLoading={deleteBoard.isPending}
+      />
     </div>
   );
 }

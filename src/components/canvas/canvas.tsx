@@ -1,4 +1,4 @@
-import { useRef, useState, useCallback, useEffect } from "react";
+import { useRef, useState, useCallback, useEffect, useImperativeHandle, forwardRef } from "react";
 
 export type Tool =
   | "select"
@@ -40,7 +40,17 @@ interface CanvasProps {
   onZoomChange: (zoom: number) => void;
 }
 
-export function Canvas({ activeTool, color, strokeWidth, zoom, onZoomChange }: CanvasProps) {
+export interface CanvasRef {
+  undo: () => void;
+  redo: () => void;
+  canUndo: boolean;
+  canRedo: boolean;
+}
+
+export const Canvas = forwardRef<CanvasRef, CanvasProps>(function Canvas(
+  { activeTool, color, strokeWidth, zoom, onZoomChange },
+  ref
+) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -50,10 +60,18 @@ export function Canvas({ activeTool, color, strokeWidth, zoom, onZoomChange }: C
   const [isDrawing, setIsDrawing] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
+  // History for undo/redo
+  const [history, setHistory] = useState<CanvasElement[][]>([[]]);
+  const [historyIndex, setHistoryIndex] = useState(0);
+
   // Pan state
   const [offset, setOffset] = useState<Point>({ x: 0, y: 0 });
   const [isPanning, setIsPanning] = useState(false);
   const [panStart, setPanStart] = useState<Point>({ x: 0, y: 0 });
+
+  // Drag state for moving elements
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragOffset, setDragOffset] = useState<Point>({ x: 0, y: 0 });
 
   // Text input state
   const [textInput, setTextInput] = useState<{ x: number; y: number; visible: boolean }>({
@@ -66,6 +84,51 @@ export function Canvas({ activeTool, color, strokeWidth, zoom, onZoomChange }: C
 
   // Generate unique ID
   const generateId = () => `el_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+  // Push new state to history
+  const pushToHistory = useCallback(
+    (newElements: CanvasElement[]) => {
+      setHistory((prev) => {
+        // Remove any future history (if we undid and then made a new change)
+        const newHistory = prev.slice(0, historyIndex + 1);
+        return [...newHistory, newElements];
+      });
+      setHistoryIndex((prev) => prev + 1);
+    },
+    [historyIndex]
+  );
+
+  // Undo function
+  const undo = useCallback(() => {
+    if (historyIndex > 0) {
+      const newIndex = historyIndex - 1;
+      setHistoryIndex(newIndex);
+      setElements(history[newIndex] ?? []);
+      setSelectedId(null);
+    }
+  }, [historyIndex, history]);
+
+  // Redo function
+  const redo = useCallback(() => {
+    if (historyIndex < history.length - 1) {
+      const newIndex = historyIndex + 1;
+      setHistoryIndex(newIndex);
+      setElements(history[newIndex] ?? []);
+      setSelectedId(null);
+    }
+  }, [historyIndex, history]);
+
+  // Expose undo/redo via ref
+  useImperativeHandle(
+    ref,
+    () => ({
+      undo,
+      redo,
+      canUndo: historyIndex > 0,
+      canRedo: historyIndex < history.length - 1,
+    }),
+    [undo, redo, historyIndex, history.length]
+  );
 
   // Get mouse position relative to canvas with zoom and offset
   const getCanvasPoint = useCallback(
@@ -175,24 +238,74 @@ export function Canvas({ activeTool, color, strokeWidth, zoom, onZoomChange }: C
         }
 
         case "sticky": {
-          // Background
-          ctx.fillStyle = el.fill || "#fef08a";
-          ctx.fillRect(el.x, el.y, el.width ?? 150, el.height ?? 150);
+          const w = el.width ?? 180;
+          const h = el.height ?? 180;
+          const radius = 16;
+          const x = el.x;
+          const y = el.y;
 
-          // Border
-          ctx.strokeStyle = "rgba(0, 0, 0, 0.1)";
-          ctx.lineWidth = 1;
-          ctx.strokeRect(el.x, el.y, el.width ?? 150, el.height ?? 150);
+          // Draw rounded rectangle helper
+          const drawRoundedRect = (
+            cx: CanvasRenderingContext2D,
+            rx: number,
+            ry: number,
+            rw: number,
+            rh: number,
+            r: number
+          ) => {
+            cx.beginPath();
+            cx.moveTo(rx + r, ry);
+            cx.lineTo(rx + rw - r, ry);
+            cx.quadraticCurveTo(rx + rw, ry, rx + rw, ry + r);
+            cx.lineTo(rx + rw, ry + rh - r);
+            cx.quadraticCurveTo(rx + rw, ry + rh, rx + rw - r, ry + rh);
+            cx.lineTo(rx + r, ry + rh);
+            cx.quadraticCurveTo(rx, ry + rh, rx, ry + rh - r);
+            cx.lineTo(rx, ry + r);
+            cx.quadraticCurveTo(rx, ry, rx + r, ry);
+            cx.closePath();
+          };
+
+          // Outer shadow
+          ctx.save();
+          ctx.shadowColor = "rgba(0, 0, 0, 0.3)";
+          ctx.shadowBlur = 24;
+          ctx.shadowOffsetX = 0;
+          ctx.shadowOffsetY = 8;
+
+          // Uniform frosted glass background
+          drawRoundedRect(ctx, x, y, w, h, radius);
+          ctx.fillStyle = "rgba(255, 255, 255, 0.12)";
+          ctx.fill();
+          ctx.restore();
+
+          // Border - crisp frosted edge
+          drawRoundedRect(ctx, x, y, w, h, radius);
+          ctx.strokeStyle = "rgba(255, 255, 255, 0.25)";
+          ctx.lineWidth = 1.5;
+          ctx.stroke();
 
           // Text
           if (el.text) {
-            ctx.fillStyle = "#1f2937";
-            ctx.font = "14px Inter, system-ui, sans-serif";
+            ctx.fillStyle = "rgba(255, 255, 255, 0.9)";
+            ctx.font = "500 15px 'Inter', system-ui, sans-serif";
+            ctx.shadowColor = "rgba(0, 0, 0, 0.4)";
+            ctx.shadowBlur = 3;
+            ctx.shadowOffsetX = 0;
+            ctx.shadowOffsetY = 1;
+
             const lines = el.text.split("\n");
+            const lineHeight = 22;
+            const padding = 16;
+
             lines.forEach((line, i) => {
-              ctx.fillText(line, el.x + 10, el.y + 24 + i * 20);
+              ctx.fillText(line, x + padding, y + padding + 18 + i * lineHeight);
             });
+
+            ctx.shadowColor = "transparent";
+            ctx.shadowBlur = 0;
           }
+
           break;
         }
       }
@@ -268,13 +381,25 @@ export function Canvas({ activeTool, color, strokeWidth, zoom, onZoomChange }: C
       // Find element at click position
       const clickedElement = findElementAtPoint(point);
       setSelectedId(clickedElement?.id ?? null);
+
+      // Start dragging if we clicked on an element
+      if (clickedElement) {
+        setIsDragging(true);
+        // Calculate offset from element origin to click point
+        setDragOffset({
+          x: point.x - clickedElement.x,
+          y: point.y - clickedElement.y,
+        });
+      }
       return;
     }
 
     if (activeTool === "eraser") {
       const clickedElement = findElementAtPoint(point);
       if (clickedElement) {
-        setElements((prev) => prev.filter((el) => el.id !== clickedElement.id));
+        const newElements = elements.filter((el) => el.id !== clickedElement.id);
+        setElements(newElements);
+        pushToHistory(newElements);
       }
       return;
     }
@@ -309,6 +434,55 @@ export function Canvas({ activeTool, color, strokeWidth, zoom, onZoomChange }: C
         x: e.clientX - panStart.x,
         y: e.clientY - panStart.y,
       });
+      return;
+    }
+
+    // Handle dragging selected element
+    if (isDragging && selectedId) {
+      const point = getCanvasPoint(e);
+      const newX = point.x - dragOffset.x;
+      const newY = point.y - dragOffset.y;
+
+      setElements((prev) =>
+        prev.map((el) => {
+          if (el.id !== selectedId) return el;
+
+          // Calculate the delta for moving
+          const deltaX = newX - el.x;
+          const deltaY = newY - el.y;
+
+          // For pencil, we need to move all points
+          if (el.type === "pencil" && el.points) {
+            return {
+              ...el,
+              x: newX,
+              y: newY,
+              points: el.points.map((p) => ({
+                x: p.x + deltaX,
+                y: p.y + deltaY,
+              })),
+            };
+          }
+
+          // For line, move both start and end points
+          if (el.type === "line") {
+            return {
+              ...el,
+              x: newX,
+              y: newY,
+              endX: (el.endX ?? el.x) + deltaX,
+              endY: (el.endY ?? el.y) + deltaY,
+            };
+          }
+
+          // For other elements, just update x and y
+          return {
+            ...el,
+            x: newX,
+            y: newY,
+          };
+        })
+      );
       return;
     }
 
@@ -354,8 +528,17 @@ export function Canvas({ activeTool, color, strokeWidth, zoom, onZoomChange }: C
       return;
     }
 
+    // Finish dragging - save to history
+    if (isDragging) {
+      setIsDragging(false);
+      pushToHistory(elements);
+      return;
+    }
+
     if (currentElement) {
-      setElements((prev) => [...prev, currentElement]);
+      const newElements = [...elements, currentElement];
+      setElements(newElements);
+      pushToHistory(newElements);
       setCurrentElement(null);
     }
 
@@ -426,15 +609,17 @@ export function Canvas({ activeTool, color, strokeWidth, zoom, onZoomChange }: C
       type: activeTool === "sticky" ? "sticky" : "text",
       x: point.x,
       y: point.y,
-      width: activeTool === "sticky" ? 150 : undefined,
-      height: activeTool === "sticky" ? 150 : undefined,
+      width: activeTool === "sticky" ? 180 : undefined,
+      height: activeTool === "sticky" ? 180 : undefined,
       text: textValue,
       color,
       strokeWidth,
       fill: activeTool === "sticky" ? "#fef08a" : undefined,
     };
 
-    setElements((prev) => [...prev, newElement]);
+    const newElements = [...elements, newElement];
+    setElements(newElements);
+    pushToHistory(newElements);
     setTextInput({ x: 0, y: 0, visible: false });
     setTextValue("");
   };
@@ -497,7 +682,7 @@ export function Canvas({ activeTool, color, strokeWidth, zoom, onZoomChange }: C
       case "pan":
         return isPanning ? "grabbing" : "grab";
       case "select":
-        return "default";
+        return isDragging ? "grabbing" : selectedId ? "move" : "default";
       case "eraser":
         return "crosshair";
       case "text":
@@ -523,32 +708,63 @@ export function Canvas({ activeTool, color, strokeWidth, zoom, onZoomChange }: C
       {/* Text input overlay */}
       {textInput.visible && (
         <div className="absolute z-20" style={{ left: textInput.x, top: textInput.y }}>
-          <textarea
-            ref={textInputRef}
-            value={textValue}
-            onChange={(e) => setTextValue(e.target.value)}
-            onBlur={handleTextSubmit}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.shiftKey) {
-                e.preventDefault();
-                handleTextSubmit();
-              }
-              if (e.key === "Escape") {
-                setTextInput({ x: 0, y: 0, visible: false });
-                setTextValue("");
-              }
-            }}
-            placeholder={activeTool === "sticky" ? "Add note..." : "Type text..."}
-            className={`rounded-lg border-2 border-[var(--color-accent)] bg-[var(--color-surface-elevated)] px-3 py-2 text-sm text-[var(--color-text)] placeholder-[var(--color-text-muted)] shadow-lg focus:outline-none ${
-              activeTool === "sticky" ? "h-32 w-40" : "h-10 w-48"
-            }`}
-            style={{
-              backgroundColor: activeTool === "sticky" ? "#fef08a" : undefined,
-              color: activeTool === "sticky" ? "#1f2937" : undefined,
-            }}
-          />
+          {activeTool === "sticky" ? (
+            <div
+              className="overflow-hidden rounded-2xl"
+              style={{
+                width: 180,
+                height: 180,
+                background: "rgba(255, 255, 255, 0.12)",
+                backdropFilter: "blur(16px)",
+                WebkitBackdropFilter: "blur(16px)",
+                border: "1.5px solid rgba(255, 255, 255, 0.25)",
+                boxShadow: "0 8px 32px rgba(0, 0, 0, 0.3)",
+              }}
+            >
+              <textarea
+                ref={textInputRef}
+                value={textValue}
+                onChange={(e) => setTextValue(e.target.value)}
+                onBlur={handleTextSubmit}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+                    handleTextSubmit();
+                  }
+                  if (e.key === "Escape") {
+                    setTextInput({ x: 0, y: 0, visible: false });
+                    setTextValue("");
+                  }
+                }}
+                placeholder="Add note..."
+                className="h-full w-full resize-none bg-transparent p-4 text-[15px] font-medium text-white/90 placeholder-white/40 focus:outline-none"
+                style={{
+                  textShadow: "0 1px 3px rgba(0,0,0,0.4)",
+                }}
+              />
+            </div>
+          ) : (
+            <textarea
+              ref={textInputRef}
+              value={textValue}
+              onChange={(e) => setTextValue(e.target.value)}
+              onBlur={handleTextSubmit}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  handleTextSubmit();
+                }
+                if (e.key === "Escape") {
+                  setTextInput({ x: 0, y: 0, visible: false });
+                  setTextValue("");
+                }
+              }}
+              placeholder="Type text..."
+              className="h-10 w-48 rounded-lg border-2 border-[var(--color-accent)] bg-[var(--color-surface-elevated)] px-3 py-2 text-sm text-[var(--color-text)] placeholder-[var(--color-text-muted)] shadow-lg focus:outline-none"
+            />
+          )}
         </div>
       )}
     </div>
   );
-}
+});
