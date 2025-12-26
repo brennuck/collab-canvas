@@ -7,14 +7,22 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// ============ AUTH ============
+
 model users {
-  id            String     @id @default(cuid())
-  email         String     @unique
+  id            String   @id @default(cuid())
+  email         String   @unique
   name          String?
+  avatar_url    String?
   password_hash String
-  created_at    DateTime   @default(now())
-  updated_at    DateTime   @updatedAt
+  created_at    DateTime @default(now())
+  updated_at    DateTime @updatedAt
+
   sessions      sessions[]
+  owned_boards  boards[]        @relation("BoardOwner")
+  board_members board_members[]
+  comments      comments[]
+  elements      elements[]      @relation("ElementCreator")
 }
 
 model sessions {
@@ -26,3 +34,186 @@ model sessions {
   @@index([userId])
 }
 
+// ============ BOARDS ============
+
+model boards {
+  id           String   @id @default(cuid())
+  name         String
+  description  String?
+  thumbnail    String?  // URL to board thumbnail/preview image
+  is_public    Boolean  @default(false)
+  owner_id     String
+  created_at   DateTime @default(now())
+  updated_at   DateTime @updatedAt
+
+  owner        users           @relation("BoardOwner", fields: [owner_id], references: [id], onDelete: Cascade)
+  members      board_members[]
+  invites      board_invites[]
+  elements     elements[]
+  comments     comments[]
+
+  @@index([owner_id])
+}
+
+enum BoardRole {
+  viewer
+  editor
+  admin
+}
+
+model board_members {
+  id         String    @id @default(cuid())
+  board_id   String
+  user_id    String
+  role       BoardRole @default(editor)
+  joined_at  DateTime  @default(now())
+
+  board      boards    @relation(fields: [board_id], references: [id], onDelete: Cascade)
+  user       users     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@unique([board_id, user_id])
+  @@index([board_id])
+  @@index([user_id])
+}
+
+model board_invites {
+  id         String    @id @default(cuid())
+  board_id   String
+  code       String    @unique @default(cuid()) // The invite link code
+  role       BoardRole @default(editor) // Role granted when invite is used
+  expires_at DateTime?
+  max_uses   Int?      // null = unlimited
+  use_count  Int       @default(0)
+  created_at DateTime  @default(now())
+
+  board      boards    @relation(fields: [board_id], references: [id], onDelete: Cascade)
+
+  @@index([board_id])
+  @@index([code])
+}
+
+// ============ CANVAS ELEMENTS ============
+
+enum ElementType {
+  freehand    // Freehand drawing paths
+  shape       // Rectangles, circles, triangles, arrows, etc.
+  sticky_note // Sticky notes
+  text        // Text boxes
+  image       // Uploaded or AI-generated images
+  connector   // Lines connecting elements
+}
+
+model elements {
+  id          String      @id @default(cuid())
+  board_id    String
+  type        ElementType
+  
+  // Position & dimensions
+  x           Float       @default(0)
+  y           Float       @default(0)
+  width       Float?
+  height      Float?
+  rotation    Float       @default(0)
+  
+  // Z-ordering
+  z_index     Int         @default(0)
+  
+  // Content - stored as JSON for flexibility
+  // For freehand: { points: [{x, y, pressure}], strokeColor, strokeWidth }
+  // For shape: { shapeType, fill, stroke, strokeWidth }
+  // For sticky_note: { text, backgroundColor }
+  // For text: { text, fontSize, fontFamily, fontWeight, color, align }
+  // For image: { url, alt }
+  // For connector: { startElementId, endElementId, startAnchor, endAnchor, style }
+  content     Json        @default("{}")
+  
+  // Style overrides (optional)
+  style       Json?
+  
+  // Locking
+  is_locked   Boolean     @default(false)
+  locked_by   String?     // User ID who locked it
+  
+  // Metadata
+  created_by  String?
+  created_at  DateTime    @default(now())
+  updated_at  DateTime    @updatedAt
+
+  board       boards      @relation(fields: [board_id], references: [id], onDelete: Cascade)
+  creator     users?      @relation("ElementCreator", fields: [created_by], references: [id], onDelete: SetNull)
+  comments    comments[]
+
+  @@index([board_id])
+  @@index([board_id, z_index])
+  @@index([created_by])
+}
+
+// ============ COMMENTS ============
+
+model comments {
+  id          String    @id @default(cuid())
+  board_id    String
+  element_id  String?   // null = comment on the board itself, not an element
+  user_id     String
+  content     String
+  
+  // Position for board-level comments (pin on canvas)
+  x           Float?
+  y           Float?
+  
+  // Threading
+  parent_id   String?
+  
+  is_resolved Boolean   @default(false)
+  created_at  DateTime  @default(now())
+  updated_at  DateTime  @updatedAt
+
+  board       boards    @relation(fields: [board_id], references: [id], onDelete: Cascade)
+  element     elements? @relation(fields: [element_id], references: [id], onDelete: Cascade)
+  user        users     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  parent      comments? @relation("CommentThread", fields: [parent_id], references: [id], onDelete: Cascade)
+  replies     comments[] @relation("CommentThread")
+
+  @@index([board_id])
+  @@index([element_id])
+  @@index([user_id])
+  @@index([parent_id])
+}
+
+// ============ AI FEATURES (Future) ============
+
+enum AITaskType {
+  suggest_diagram
+  summarize_notes
+  generate_image
+  auto_organize
+}
+
+enum AITaskStatus {
+  pending
+  processing
+  completed
+  failed
+}
+
+model ai_tasks {
+  id          String       @id @default(cuid())
+  board_id    String
+  user_id     String
+  type        AITaskType
+  status      AITaskStatus @default(pending)
+  
+  // Input prompt/context
+  input       Json
+  
+  // Output result (generated elements, summary, etc.)
+  output      Json?
+  
+  error       String?
+  created_at  DateTime     @default(now())
+  completed_at DateTime?
+
+  @@index([board_id])
+  @@index([user_id])
+  @@index([status])
+}
