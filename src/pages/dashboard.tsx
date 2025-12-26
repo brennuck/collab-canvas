@@ -1,246 +1,14 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
 import { useAuth } from "@/hooks/use-auth";
 import { trpc } from "@/lib/trpc";
-import { Modal, ConfirmModal } from "@/components/ui/modal";
-import {
-  Plus,
-  MoreHorizontal,
-  Users,
-  Clock,
-  Trash2,
-  ExternalLink,
-  LogOut,
-  Pencil,
-  FolderOpen,
-  Pin,
-  PinOff,
-  Loader2,
-} from "lucide-react";
-
-function formatRelativeTime(date: Date): string {
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const diffMins = Math.floor(diffMs / (1000 * 60));
-  const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-
-  if (diffMins < 1) return "Just now";
-  if (diffMins < 60) return `${diffMins}m ago`;
-  if (diffHours < 24) return `${diffHours}h ago`;
-  if (diffDays < 7) return `${diffDays}d ago`;
-  return date.toLocaleDateString();
-}
-
-interface Board {
-  id: string;
-  name: string;
-  updatedAt: Date;
-  memberCount: number;
-  thumbnail: string | null;
-  ownerName?: string;
-  isOwned: boolean;
-  isPinned: boolean;
-}
-
-// API response types (mirror of tRPC output)
-interface OwnedBoardResponse {
-  id: string;
-  name: string;
-  thumbnail: string | null;
-  updatedAt: Date;
-  memberCount: number;
-  isOwned: boolean;
-  isPinned: boolean;
-}
-
-interface SharedBoardResponse {
-  id: string;
-  name: string;
-  thumbnail: string | null;
-  updatedAt: Date;
-  memberCount: number;
-  ownerName: string;
-  isOwned: boolean;
-  isPinned: boolean;
-}
-
-function BoardCard({
-  board,
-  onTogglePin,
-  onRename,
-  onDelete,
-  onLeave,
-}: {
-  board: Board;
-  onTogglePin: (id: string, isPinned: boolean) => void;
-  onRename: (board: Board) => void;
-  onDelete: (board: Board) => void;
-  onLeave: (board: Board) => void;
-}) {
-  const [menuOpen, setMenuOpen] = useState(false);
-
-  return (
-    <div className="hover:border-[var(--color-text-muted)]/30 group relative rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-elevated)] transition-all">
-      {/* Pin indicator */}
-      {board.isPinned && (
-        <div className="absolute right-3 top-3 z-10 rounded-full bg-[var(--color-surface-elevated)] p-1.5 shadow-md">
-          <Pin className="h-3 w-3 text-[var(--color-accent)]" />
-        </div>
-      )}
-
-      {/* Thumbnail / Preview */}
-      <Link to={`/board/${board.id}`} className="block">
-        <div className="relative aspect-[16/10] overflow-hidden rounded-t-xl bg-[var(--color-surface)]">
-          {/* Grid pattern placeholder */}
-          <div
-            className="absolute inset-0 opacity-30"
-            style={{
-              backgroundImage: `
-                linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px)
-              `,
-              backgroundSize: "20px 20px",
-            }}
-          />
-          {/* Decorative elements to hint at content */}
-          <div className="absolute left-[10%] top-[15%] h-8 w-16 rotate-[-2deg] rounded bg-amber-400/20" />
-          <div className="absolute right-[15%] top-[25%] h-6 w-12 rotate-[3deg] rounded bg-pink-400/20" />
-          <div className="bg-[var(--color-accent)]/30 absolute bottom-[20%] left-[20%] h-1 w-24 rounded-full" />
-        </div>
-      </Link>
-
-      {/* Info */}
-      <div className="p-4">
-        <div className="mb-2 flex items-start justify-between gap-2">
-          <Link
-            to={`/board/${board.id}`}
-            className="font-semibold text-[var(--color-text)] hover:text-[var(--color-accent)]"
-          >
-            {board.name}
-          </Link>
-
-          {/* Menu */}
-          <div className="relative">
-            <button
-              onClick={() => setMenuOpen(!menuOpen)}
-              className="rounded-lg p-1 text-[var(--color-text-muted)] opacity-0 transition-all hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text)] group-hover:opacity-100"
-            >
-              <MoreHorizontal className="h-4 w-4" />
-            </button>
-
-            {menuOpen && (
-              <>
-                <div className="fixed inset-0 z-10" onClick={() => setMenuOpen(false)} />
-                <div className="absolute right-0 z-20 mt-1 w-44 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-elevated)] py-1 shadow-xl">
-                  <Link
-                    to={`/board/${board.id}`}
-                    className="flex items-center gap-2 px-3 py-2 text-sm text-[var(--color-text-muted)] hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text)]"
-                  >
-                    <ExternalLink className="h-4 w-4" />
-                    Open
-                  </Link>
-                  <button
-                    onClick={() => {
-                      onTogglePin(board.id, board.isPinned);
-                      setMenuOpen(false);
-                    }}
-                    className="flex w-full items-center gap-2 px-3 py-2 text-sm text-[var(--color-text-muted)] hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text)]"
-                  >
-                    {board.isPinned ? (
-                      <>
-                        <PinOff className="h-4 w-4" />
-                        Unpin
-                      </>
-                    ) : (
-                      <>
-                        <Pin className="h-4 w-4" />
-                        Pin to top
-                      </>
-                    )}
-                  </button>
-                  {board.isOwned ? (
-                    <>
-                      <button
-                        onClick={() => {
-                          onRename(board);
-                          setMenuOpen(false);
-                        }}
-                        className="flex w-full items-center gap-2 px-3 py-2 text-sm text-[var(--color-text-muted)] hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text)]"
-                      >
-                        <Pencil className="h-4 w-4" />
-                        Rename
-                      </button>
-                      <button
-                        onClick={() => {
-                          onDelete(board);
-                          setMenuOpen(false);
-                        }}
-                        className="flex w-full items-center gap-2 px-3 py-2 text-sm text-red-400 hover:bg-[var(--color-surface-hover)]"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                        Delete
-                      </button>
-                    </>
-                  ) : (
-                    <button
-                      onClick={() => {
-                        onLeave(board);
-                        setMenuOpen(false);
-                      }}
-                      className="flex w-full items-center gap-2 px-3 py-2 text-sm text-red-400 hover:bg-[var(--color-surface-hover)]"
-                    >
-                      <LogOut className="h-4 w-4" />
-                      Leave board
-                    </button>
-                  )}
-                </div>
-              </>
-            )}
-          </div>
-        </div>
-
-        {/* Meta info */}
-        <div className="flex items-center gap-3 text-xs text-[var(--color-text-muted)]">
-          {!board.isOwned && board.ownerName && (
-            <span className="flex items-center gap-1">by {board.ownerName}</span>
-          )}
-          <span className="flex items-center gap-1">
-            <Clock className="h-3 w-3" />
-            {formatRelativeTime(board.updatedAt)}
-          </span>
-          <span className="flex items-center gap-1">
-            <Users className="h-3 w-3" />
-            {board.memberCount}
-          </span>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function EmptyState({
-  title,
-  description,
-  action,
-  icon: Icon,
-}: {
-  title: string;
-  description: string;
-  action?: React.ReactNode;
-  icon: React.ElementType;
-}) {
-  return (
-    <div className="bg-[var(--color-surface-elevated)]/50 flex flex-col items-center justify-center rounded-xl border border-dashed border-[var(--color-border)] px-6 py-12 text-center">
-      <div className="mb-4 rounded-full bg-[var(--color-accent-muted)] p-4">
-        <Icon className="h-8 w-8 text-[var(--color-accent)]" />
-      </div>
-      <h3 className="mb-2 text-lg font-semibold text-[var(--color-text)]">{title}</h3>
-      <p className="mb-6 max-w-sm text-sm text-[var(--color-text-muted)]">{description}</p>
-      {action}
-    </div>
-  );
-}
+import { ConfirmModal } from "@/components/ui/modal";
+import { EmptyState } from "@/components/ui/empty-state";
+import { BoardCard } from "@/components/boards/board-card";
+import { CreateBoardModal } from "@/components/boards/create-board-modal";
+import { RenameBoardModal } from "@/components/boards/rename-board-modal";
+import { getInitials } from "@/lib/format";
+import type { Board, OwnedBoardResponse, SharedBoardResponse } from "@/types/board";
+import { Plus, Users, FolderOpen, Pin, Loader2 } from "lucide-react";
 
 export function DashboardPage() {
   const { user } = useAuth();
@@ -254,7 +22,6 @@ export function DashboardPage() {
     onSuccess: () => {
       utils.boards.list.invalidate();
       setCreateModalOpen(false);
-      setNewBoardName("");
     },
   });
 
@@ -262,7 +29,6 @@ export function DashboardPage() {
     onSuccess: () => {
       utils.boards.list.invalidate();
       setRenameModal({ open: false, board: null });
-      setRenameValue("");
     },
   });
 
@@ -290,12 +56,10 @@ export function DashboardPage() {
 
   // Modal states
   const [createModalOpen, setCreateModalOpen] = useState(false);
-  const [newBoardName, setNewBoardName] = useState("");
   const [renameModal, setRenameModal] = useState<{ open: boolean; board: Board | null }>({
     open: false,
     board: null,
   });
-  const [renameValue, setRenameValue] = useState("");
   const [deleteModal, setDeleteModal] = useState<{ open: boolean; board: Board | null }>({
     open: false,
     board: null,
@@ -338,28 +102,13 @@ export function DashboardPage() {
   const totalOwned = allBoards.filter((b) => b.isOwned).length;
   const totalShared = allBoards.filter((b) => !b.isOwned).length;
 
-  const getInitials = (name?: string | null, email?: string) => {
-    if (name) {
-      return name
-        .split(" ")
-        .map((n) => n[0])
-        .join("")
-        .toUpperCase()
-        .slice(0, 2);
-    }
-    return email?.slice(0, 2).toUpperCase() ?? "??";
+  const handleCreateBoard = (name: string) => {
+    createBoard.mutate({ name });
   };
 
-  const handleCreateBoard = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newBoardName.trim()) return;
-    createBoard.mutate({ name: newBoardName.trim() });
-  };
-
-  const handleRenameBoard = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!renameModal.board || !renameValue.trim()) return;
-    renameBoard.mutate({ id: renameModal.board.id, name: renameValue.trim() });
+  const handleRenameBoard = (name: string) => {
+    if (!renameModal.board) return;
+    renameBoard.mutate({ id: renameModal.board.id, name });
   };
 
   const handleTogglePin = (id: string, currentlyPinned: boolean) => {
@@ -372,7 +121,6 @@ export function DashboardPage() {
 
   const openRenameModal = (board: Board) => {
     setRenameModal({ open: true, board });
-    setRenameValue(board.name);
   };
 
   return (
@@ -511,77 +259,21 @@ export function DashboardPage() {
       </div>
 
       {/* Create Board Modal */}
-      <Modal
+      <CreateBoardModal
         isOpen={createModalOpen}
         onClose={() => setCreateModalOpen(false)}
-        title="Create new board"
-      >
-        <form onSubmit={handleCreateBoard}>
-          <label className="mb-2 block text-sm font-medium text-[var(--color-text)]">
-            Board name
-          </label>
-          <input
-            type="text"
-            value={newBoardName}
-            onChange={(e) => setNewBoardName(e.target.value)}
-            placeholder="e.g., Project Brainstorm"
-            autoFocus
-            className="mb-4 w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-2.5 text-[var(--color-text)] placeholder-[var(--color-text-muted)] focus:border-[var(--color-accent)] focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)]"
-          />
-          <div className="flex justify-end gap-3">
-            <button
-              type="button"
-              onClick={() => setCreateModalOpen(false)}
-              className="rounded-lg border border-[var(--color-border)] px-4 py-2 text-sm font-medium text-[var(--color-text)] transition-colors hover:bg-[var(--color-surface-hover)]"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={!newBoardName.trim() || createBoard.isPending}
-              className="rounded-lg bg-[var(--color-accent)] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[var(--color-accent-hover)] disabled:opacity-50"
-            >
-              {createBoard.isPending ? "Creating..." : "Create board"}
-            </button>
-          </div>
-        </form>
-      </Modal>
+        onSubmit={handleCreateBoard}
+        isLoading={createBoard.isPending}
+      />
 
       {/* Rename Board Modal */}
-      <Modal
+      <RenameBoardModal
         isOpen={renameModal.open}
         onClose={() => setRenameModal({ open: false, board: null })}
-        title="Rename board"
-      >
-        <form onSubmit={handleRenameBoard}>
-          <label className="mb-2 block text-sm font-medium text-[var(--color-text)]">
-            Board name
-          </label>
-          <input
-            type="text"
-            value={renameValue}
-            onChange={(e) => setRenameValue(e.target.value)}
-            autoFocus
-            className="mb-4 w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-2.5 text-[var(--color-text)] placeholder-[var(--color-text-muted)] focus:border-[var(--color-accent)] focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)]"
-          />
-          <div className="flex justify-end gap-3">
-            <button
-              type="button"
-              onClick={() => setRenameModal({ open: false, board: null })}
-              className="rounded-lg border border-[var(--color-border)] px-4 py-2 text-sm font-medium text-[var(--color-text)] transition-colors hover:bg-[var(--color-surface-hover)]"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={!renameValue.trim() || renameBoard.isPending}
-              className="rounded-lg bg-[var(--color-accent)] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[var(--color-accent-hover)] disabled:opacity-50"
-            >
-              {renameBoard.isPending ? "Saving..." : "Save"}
-            </button>
-          </div>
-        </form>
-      </Modal>
+        onSubmit={handleRenameBoard}
+        currentName={renameModal.board?.name ?? ""}
+        isLoading={renameBoard.isPending}
+      />
 
       {/* Delete Board Confirmation */}
       <ConfirmModal
