@@ -292,13 +292,29 @@ export function HomePage() {
               All the tools for visual thinking, from quick sketches to complex diagrams.
             </p>
           </div>
+        </div>
 
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {features.map((feature, i) => (
+        {/* Carousel */}
+        <div className="carousel-container overflow-hidden">
+          <div className="carousel-track flex w-max gap-6 px-4">
+            {/* First set of cards */}
+            {features.map((feature) => (
               <div
                 key={feature.title}
-                className={`animate-fade-up hover:border-[var(--color-text-muted)]/30 group rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-elevated)] p-6 transition-all hover:bg-[var(--color-surface-hover)]`}
-                style={{ animationDelay: `${i * 0.1}s` }}
+                className="w-[320px] flex-shrink-0 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-elevated)] p-6 transition-all hover:border-[var(--color-text-muted)]/30 hover:bg-[var(--color-surface-hover)]"
+              >
+                <div className={`mb-4 inline-flex rounded-xl ${feature.bgColor} p-3`}>
+                  <feature.icon className={`h-6 w-6 ${feature.color}`} />
+                </div>
+                <h3 className="mb-2 text-lg font-semibold">{feature.title}</h3>
+                <p className="text-sm text-[var(--color-text-muted)]">{feature.description}</p>
+              </div>
+            ))}
+            {/* Duplicate set for seamless loop */}
+            {features.map((feature) => (
+              <div
+                key={`${feature.title}-dup`}
+                className="w-[320px] flex-shrink-0 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-elevated)] p-6 transition-all hover:border-[var(--color-text-muted)]/30 hover:bg-[var(--color-surface-hover)]"
               >
                 <div className={`mb-4 inline-flex rounded-xl ${feature.bgColor} p-3`}>
                   <feature.icon className={`h-6 w-6 ${feature.color}`} />
