@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Link } from "react-router-dom";
 import {
   MoreHorizontal,
@@ -16,6 +16,182 @@ import {
 import type { Board } from "@/types/board";
 import { formatRelativeTime } from "@/lib/format";
 
+const cardBackgrounds = [
+  // 1. Aurora - Purple/teal gradient with floating orbs
+  {
+    background: "linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)",
+    elements: [
+      { type: "circle", x: "15%", y: "20%", size: 60, color: "rgba(147, 51, 234, 0.3)", blur: 20 },
+      { type: "circle", x: "75%", y: "60%", size: 80, color: "rgba(6, 182, 212, 0.25)", blur: 25 },
+      { type: "circle", x: "50%", y: "30%", size: 40, color: "rgba(236, 72, 153, 0.2)", blur: 15 },
+    ],
+  },
+  // 2. Sunset mesh - Warm orange/pink
+  {
+    background: "linear-gradient(160deg, #1f1f1f 0%, #2d1f1f 50%, #1f1a1f 100%)",
+    elements: [
+      {
+        type: "circle",
+        x: "20%",
+        y: "30%",
+        size: 100,
+        color: "rgba(251, 146, 60, 0.25)",
+        blur: 30,
+      },
+      { type: "circle", x: "80%", y: "20%", size: 70, color: "rgba(244, 63, 94, 0.2)", blur: 25 },
+      { type: "circle", x: "60%", y: "70%", size: 50, color: "rgba(253, 186, 116, 0.2)", blur: 20 },
+    ],
+  },
+  // 3. Ocean depth - Deep blue/cyan
+  {
+    background: "linear-gradient(180deg, #0c1222 0%, #0a1628 50%, #0f172a 100%)",
+    elements: [
+      { type: "circle", x: "30%", y: "40%", size: 90, color: "rgba(56, 189, 248, 0.2)", blur: 30 },
+      { type: "circle", x: "70%", y: "25%", size: 60, color: "rgba(34, 211, 238, 0.15)", blur: 20 },
+      { type: "wave", y: "80%", color: "rgba(56, 189, 248, 0.1)" },
+    ],
+  },
+  // 4. Forest - Green/emerald
+  {
+    background: "linear-gradient(145deg, #0f1f1a 0%, #1a2f25 50%, #0f261c 100%)",
+    elements: [
+      { type: "circle", x: "25%", y: "35%", size: 70, color: "rgba(52, 211, 153, 0.2)", blur: 25 },
+      { type: "circle", x: "65%", y: "55%", size: 90, color: "rgba(16, 185, 129, 0.15)", blur: 30 },
+      {
+        type: "circle",
+        x: "80%",
+        y: "20%",
+        size: 40,
+        color: "rgba(167, 243, 208, 0.15)",
+        blur: 15,
+      },
+    ],
+  },
+  // 5. Lavender dreams - Purple/violet
+  {
+    background: "linear-gradient(135deg, #1a1625 0%, #251a35 50%, #1f1a2e 100%)",
+    elements: [
+      {
+        type: "circle",
+        x: "20%",
+        y: "25%",
+        size: 80,
+        color: "rgba(167, 139, 250, 0.25)",
+        blur: 25,
+      },
+      { type: "circle", x: "75%", y: "45%", size: 60, color: "rgba(192, 132, 252, 0.2)", blur: 20 },
+      { type: "circle", x: "45%", y: "70%", size: 50, color: "rgba(139, 92, 246, 0.15)", blur: 18 },
+    ],
+  },
+  // 6. Coral reef - Pink/coral
+  {
+    background: "linear-gradient(150deg, #1f1a1f 0%, #2a1f25 50%, #1f1a20 100%)",
+    elements: [
+      {
+        type: "circle",
+        x: "30%",
+        y: "30%",
+        size: 75,
+        color: "rgba(251, 113, 133, 0.25)",
+        blur: 25,
+      },
+      { type: "circle", x: "70%", y: "50%", size: 55, color: "rgba(253, 164, 175, 0.2)", blur: 20 },
+      {
+        type: "circle",
+        x: "50%",
+        y: "75%",
+        size: 65,
+        color: "rgba(244, 114, 182, 0.15)",
+        blur: 22,
+      },
+    ],
+  },
+  // 7. Midnight - Dark with blue accents
+  {
+    background: "linear-gradient(135deg, #0f0f1a 0%, #151525 50%, #1a1a2a 100%)",
+    elements: [
+      {
+        type: "circle",
+        x: "15%",
+        y: "60%",
+        size: 100,
+        color: "rgba(99, 102, 241, 0.15)",
+        blur: 35,
+      },
+      {
+        type: "circle",
+        x: "85%",
+        y: "30%",
+        size: 70,
+        color: "rgba(129, 140, 248, 0.12)",
+        blur: 25,
+      },
+      { type: "grid", color: "rgba(99, 102, 241, 0.05)" },
+    ],
+  },
+  // 8. Golden hour - Amber/yellow
+  {
+    background: "linear-gradient(160deg, #1a1814 0%, #252015 50%, #1f1c14 100%)",
+    elements: [
+      { type: "circle", x: "25%", y: "35%", size: 85, color: "rgba(251, 191, 36, 0.2)", blur: 28 },
+      { type: "circle", x: "70%", y: "25%", size: 60, color: "rgba(252, 211, 77, 0.15)", blur: 22 },
+      { type: "circle", x: "55%", y: "65%", size: 45, color: "rgba(245, 158, 11, 0.18)", blur: 18 },
+    ],
+  },
+  // 9. Northern lights - Multi-color
+  {
+    background: "linear-gradient(135deg, #0f1419 0%, #1a1f25 50%, #0f1922 100%)",
+    elements: [
+      { type: "circle", x: "20%", y: "40%", size: 70, color: "rgba(52, 211, 153, 0.2)", blur: 25 },
+      { type: "circle", x: "50%", y: "20%", size: 60, color: "rgba(147, 51, 234, 0.18)", blur: 22 },
+      { type: "circle", x: "80%", y: "55%", size: 55, color: "rgba(56, 189, 248, 0.15)", blur: 20 },
+    ],
+  },
+  // 10. Monochrome - Elegant grayscale
+  {
+    background: "linear-gradient(145deg, #18181b 0%, #1f1f23 50%, #18181b 100%)",
+    elements: [
+      {
+        type: "circle",
+        x: "30%",
+        y: "30%",
+        size: 90,
+        color: "rgba(255, 255, 255, 0.04)",
+        blur: 30,
+      },
+      {
+        type: "circle",
+        x: "70%",
+        y: "60%",
+        size: 70,
+        color: "rgba(255, 255, 255, 0.03)",
+        blur: 25,
+      },
+      { type: "grid", color: "rgba(255, 255, 255, 0.02)" },
+    ],
+  },
+];
+
+// Simple hash function to get consistent index from board ID
+function hashString(str: string): number {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i);
+    hash = (hash << 5) - hash + char;
+    hash = hash & hash;
+  }
+  return Math.abs(hash);
+}
+
+interface BackgroundElement {
+  type: string;
+  x?: string;
+  y?: string;
+  size?: number;
+  color: string;
+  blur?: number;
+}
+
 interface BoardCardProps {
   board: Board;
   onTogglePin: (id: string, isPinned: boolean) => void;
@@ -26,11 +202,25 @@ interface BoardCardProps {
   onManageMembers?: (board: Board) => void;
 }
 
-export function BoardCard({ board, onTogglePin, onRename, onDelete, onLeave, onInvite, onManageMembers }: BoardCardProps) {
+export function BoardCard({
+  board,
+  onTogglePin,
+  onRename,
+  onDelete,
+  onLeave,
+  onInvite,
+  onManageMembers,
+}: BoardCardProps) {
   const [menuOpen, setMenuOpen] = useState(false);
 
+  // Get consistent background based on board ID
+  const bgStyle = useMemo(() => {
+    const index = hashString(board.id) % cardBackgrounds.length;
+    return cardBackgrounds[index];
+  }, [board.id]);
+
   return (
-    <div className="hover:border-[var(--color-text-muted)]/30 group relative rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-elevated)] transition-all">
+    <div className="hover:border-[var(--color-text-muted)]/30 group relative rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-elevated)] transition-all hover:shadow-lg hover:shadow-black/20">
       {/* Pin indicator */}
       {board.isPinned && (
         <div className="absolute right-3 top-3 z-10 rounded-full bg-[var(--color-surface-elevated)] p-1.5 shadow-md">
@@ -40,22 +230,73 @@ export function BoardCard({ board, onTogglePin, onRename, onDelete, onLeave, onI
 
       {/* Thumbnail / Preview */}
       <Link to={`/board/${board.id}`} className="block">
-        <div className="relative aspect-[16/10] overflow-hidden rounded-t-xl bg-[var(--color-surface)]">
-          {/* Grid pattern placeholder */}
+        <div
+          className="relative aspect-[16/10] overflow-hidden rounded-t-xl"
+          style={{ background: bgStyle?.background }}
+        >
+          {/* Render decorative elements */}
+          {bgStyle?.elements.map((el: BackgroundElement, i: number) => {
+            if (el.type === "circle") {
+              return (
+                <div
+                  key={i}
+                  className="absolute rounded-full"
+                  style={{
+                    left: el.x,
+                    top: el.y,
+                    width: el.size,
+                    height: el.size,
+                    backgroundColor: el.color,
+                    filter: `blur(${el.blur}px)`,
+                    transform: "translate(-50%, -50%)",
+                  }}
+                />
+              );
+            }
+            if (el.type === "grid") {
+              return (
+                <div
+                  key={i}
+                  className="absolute inset-0"
+                  style={{
+                    backgroundImage: `
+                      linear-gradient(${el.color} 1px, transparent 1px),
+                      linear-gradient(90deg, ${el.color} 1px, transparent 1px)
+                    `,
+                    backgroundSize: "24px 24px",
+                  }}
+                />
+              );
+            }
+            if (el.type === "wave") {
+              return (
+                <div
+                  key={i}
+                  className="absolute left-0 right-0 h-8"
+                  style={{
+                    top: el.y,
+                    background: `linear-gradient(0deg, ${el.color} 0%, transparent 100%)`,
+                  }}
+                />
+              );
+            }
+            return null;
+          })}
+
+          {/* Subtle grid overlay for depth */}
           <div
-            className="absolute inset-0 opacity-30"
+            className="absolute inset-0 opacity-20"
             style={{
               backgroundImage: `
-                linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px)
+                linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px)
               `,
               backgroundSize: "20px 20px",
             }}
           />
-          {/* Decorative elements to hint at content */}
-          <div className="absolute left-[10%] top-[15%] h-8 w-16 rotate-[-2deg] rounded bg-amber-400/20" />
-          <div className="absolute right-[15%] top-[25%] h-6 w-12 rotate-[3deg] rounded bg-pink-400/20" />
-          <div className="bg-[var(--color-accent)]/30 absolute bottom-[20%] left-[20%] h-1 w-24 rounded-full" />
+
+          {/* Hover effect overlay */}
+          <div className="absolute inset-0 bg-white/0 transition-colors group-hover:bg-white/5" />
         </div>
       </Link>
 
@@ -191,4 +432,3 @@ export function BoardCard({ board, onTogglePin, onRename, onDelete, onLeave, onI
     </div>
   );
 }
-
