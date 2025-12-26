@@ -8,6 +8,7 @@ export type Tool =
   | "circle"
   | "text"
   | "sticky"
+  | "card"
   | "pencil"
   | "line"
   | "eraser";
@@ -19,7 +20,7 @@ export interface Point {
 
 export interface CanvasElement {
   id: string;
-  type: "pencil" | "line" | "rectangle" | "circle" | "text" | "sticky";
+  type: "pencil" | "line" | "rectangle" | "circle" | "text" | "sticky" | "card";
   points?: Point[]; // For pencil/freehand
   x: number;
   y: number;
@@ -28,6 +29,8 @@ export interface CanvasElement {
   endX?: number; // For line
   endY?: number; // For line
   text?: string;
+  header?: string; // For card
+  description?: string; // For card
   color: string;
   strokeWidth: number;
   fill?: string;
@@ -86,6 +89,17 @@ export const Canvas = forwardRef<CanvasRef, CanvasProps>(function Canvas(
   const [textValue, setTextValue] = useState("");
   const textInputRef = useRef<HTMLTextAreaElement>(null);
 
+  // Card input state
+  const [cardInput, setCardInput] = useState<{ x: number; y: number; visible: boolean }>({
+    x: 0,
+    y: 0,
+    visible: false,
+  });
+  const [cardHeader, setCardHeader] = useState("");
+  const [cardDescription, setCardDescription] = useState("");
+  const cardHeaderRef = useRef<HTMLInputElement>(null);
+  const cardDescriptionRef = useRef<HTMLTextAreaElement>(null);
+
   // Track if initial load is done and for which board
   const [loadedBoardId, setLoadedBoardId] = useState<string | null>(null);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -117,6 +131,8 @@ export const Canvas = forwardRef<CanvasRef, CanvasProps>(function Canvas(
       endX: el.endX,
       endY: el.endY,
       text: el.text,
+      header: el.header,
+      description: el.description,
       color: el.color,
       strokeWidth: el.strokeWidth,
       fill: el.fill,
@@ -376,6 +392,119 @@ export const Canvas = forwardRef<CanvasRef, CanvasProps>(function Canvas(
 
           break;
         }
+
+        case "card": {
+          const w = el.width ?? 320;
+          const h = el.height ?? 200;
+          const radius = 12;
+          const x = el.x;
+          const y = el.y;
+          const cardColor = el.color || "#3b82f6";
+
+          // Draw rounded rectangle helper
+          const drawRoundedRect = (
+            cx: CanvasRenderingContext2D,
+            rx: number,
+            ry: number,
+            rw: number,
+            rh: number,
+            r: number
+          ) => {
+            cx.beginPath();
+            cx.moveTo(rx + r, ry);
+            cx.lineTo(rx + rw - r, ry);
+            cx.quadraticCurveTo(rx + rw, ry, rx + rw, ry + r);
+            cx.lineTo(rx + rw, ry + rh - r);
+            cx.quadraticCurveTo(rx + rw, ry + rh, rx + rw - r, ry + rh);
+            cx.lineTo(rx + r, ry + rh);
+            cx.quadraticCurveTo(rx, ry + rh, rx, ry + rh - r);
+            cx.lineTo(rx, ry + r);
+            cx.quadraticCurveTo(rx, ry, rx + r, ry);
+            cx.closePath();
+          };
+
+          // Outer shadow
+          ctx.save();
+          ctx.shadowColor = "rgba(0, 0, 0, 0.25)";
+          ctx.shadowBlur = 20;
+          ctx.shadowOffsetX = 0;
+          ctx.shadowOffsetY = 8;
+
+          // Card background with color
+          drawRoundedRect(ctx, x, y, w, h, radius);
+          ctx.fillStyle = cardColor;
+          ctx.fill();
+          ctx.restore();
+
+          // Header section background (darker shade)
+          const headerHeight = 60;
+          drawRoundedRect(ctx, x, y, w, headerHeight, radius);
+          ctx.fillStyle = cardColor;
+          ctx.globalAlpha = 0.8;
+          ctx.fill();
+          ctx.globalAlpha = 1.0;
+
+          // Border
+          drawRoundedRect(ctx, x, y, w, h, radius);
+          ctx.strokeStyle = "rgba(255, 255, 255, 0.2)";
+          ctx.lineWidth = 2;
+          ctx.stroke();
+
+          // Header text
+          if (el.header) {
+            ctx.fillStyle = "rgba(255, 255, 255, 0.95)";
+            ctx.font = "600 18px 'Inter', system-ui, sans-serif";
+            ctx.shadowColor = "rgba(0, 0, 0, 0.3)";
+            ctx.shadowBlur = 2;
+            ctx.shadowOffsetX = 0;
+            ctx.shadowOffsetY = 1;
+
+            const padding = 20;
+            ctx.fillText(el.header, x + padding, y + padding + 20);
+            ctx.shadowColor = "transparent";
+            ctx.shadowBlur = 0;
+          }
+
+          // Description text
+          if (el.description) {
+            ctx.fillStyle = "rgba(255, 255, 255, 0.85)";
+            ctx.font = "400 14px 'Inter', system-ui, sans-serif";
+            ctx.shadowColor = "rgba(0, 0, 0, 0.2)";
+            ctx.shadowBlur = 1;
+            ctx.shadowOffsetX = 0;
+            ctx.shadowOffsetY = 1;
+
+            const padding = 20;
+            const lineHeight = 20;
+            const maxWidth = w - padding * 2;
+            const startY = y + headerHeight + padding + 10;
+
+            // Simple text wrapping
+            const words = el.description.split(" ");
+            let line = "";
+            let currentY = startY;
+
+            words.forEach((word) => {
+              const testLine = line + word + " ";
+              const metrics = ctx.measureText(testLine);
+              if (metrics.width > maxWidth && line) {
+                ctx.fillText(line, x + padding, currentY);
+                line = word + " ";
+                currentY += lineHeight;
+              } else {
+                line = testLine;
+              }
+            });
+            if (line) {
+              ctx.fillText(line, x + padding, currentY);
+            }
+
+            ctx.shadowColor = "transparent";
+            ctx.shadowBlur = 0;
+          }
+
+          break;
+        }
       }
 
       // Draw selection indicator
@@ -480,6 +609,14 @@ export const Canvas = forwardRef<CanvasRef, CanvasProps>(function Canvas(
       setTextInput({ x: e.clientX, y: e.clientY, visible: true });
       setTextValue("");
       setTimeout(() => textInputRef.current?.focus(), 0);
+      return;
+    }
+
+    if (activeTool === "card") {
+      setCardInput({ x: e.clientX, y: e.clientY, visible: true });
+      setCardHeader("");
+      setCardDescription("");
+      setTimeout(() => cardHeaderRef.current?.focus(), 0);
       return;
     }
 
@@ -696,6 +833,43 @@ export const Canvas = forwardRef<CanvasRef, CanvasProps>(function Canvas(
     setTextValue("");
   };
 
+  // Handle card input submission
+  const handleCardSubmit = () => {
+    if (!cardHeader.trim() && !cardDescription.trim()) {
+      setCardInput({ x: 0, y: 0, visible: false });
+      return;
+    }
+
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const rect = canvas.getBoundingClientRect();
+    const point: Point = {
+      x: (cardInput.x - rect.left - offset.x) / (zoom / 100),
+      y: (cardInput.y - rect.top - offset.y) / (zoom / 100),
+    };
+
+    const newElement: CanvasElement = {
+      id: generateId(),
+      type: "card",
+      x: point.x,
+      y: point.y,
+      width: 320,
+      height: 200,
+      header: cardHeader.trim() || undefined,
+      description: cardDescription.trim() || undefined,
+      color,
+      strokeWidth,
+    };
+
+    const newElements = [...elements, newElement];
+    setElements(newElements);
+    pushToHistory(newElements);
+    setCardInput({ x: 0, y: 0, visible: false });
+    setCardHeader("");
+    setCardDescription("");
+  };
+
   // Handle wheel for zooming (centered on cursor)
   const handleWheel = (e: React.WheelEvent) => {
     e.preventDefault();
@@ -710,7 +884,7 @@ export const Canvas = forwardRef<CanvasRef, CanvasProps>(function Canvas(
     const cursorY = e.clientY - rect.top;
 
     // Calculate zoom delta
-    const zoomSensitivity = 0.1;
+    const zoomSensitivity = 0.04;
     const delta = e.deltaY > 0 ? -zoomSensitivity : zoomSensitivity;
     const newZoom = Math.min(400, Math.max(25, zoom * (1 + delta)));
 
@@ -836,6 +1010,104 @@ export const Canvas = forwardRef<CanvasRef, CanvasProps>(function Canvas(
             />
           )}
         </div>
+      )}
+
+      {/* Card input overlay */}
+      {cardInput.visible && (
+        <>
+          {/* Backdrop to close on click outside */}
+          <div className="fixed inset-0 z-10" onClick={handleCardSubmit} />
+          <div className="absolute z-20" style={{ left: cardInput.x, top: cardInput.y }}>
+            <div
+              className="overflow-hidden rounded-xl border-2 shadow-2xl"
+              style={{
+                width: 320,
+                background: color,
+                borderColor: color,
+                boxShadow: `0 8px 32px ${color}40`,
+              }}
+            >
+              {/* Header section */}
+              <div
+                className="px-4 py-3"
+                style={{
+                  background: `${color}CC`,
+                }}
+              >
+                <input
+                  ref={cardHeaderRef}
+                  type="text"
+                  value={cardHeader}
+                  onChange={(e) => setCardHeader(e.target.value)}
+                  placeholder="Card title..."
+                  className="w-full bg-transparent text-lg font-semibold text-white placeholder-white/60 focus:outline-none"
+                  style={{
+                    textShadow: "0 1px 2px rgba(0,0,0,0.3)",
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      cardDescriptionRef.current?.focus();
+                    }
+                    if (e.key === "Escape") {
+                      setCardInput({ x: 0, y: 0, visible: false });
+                      setCardHeader("");
+                      setCardDescription("");
+                    }
+                  }}
+                />
+              </div>
+
+              {/* Description section */}
+              <div className="px-4 py-3">
+                <textarea
+                  ref={cardDescriptionRef}
+                  value={cardDescription}
+                  onChange={(e) => setCardDescription(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Escape") {
+                      setCardInput({ x: 0, y: 0, visible: false });
+                      setCardHeader("");
+                      setCardDescription("");
+                    }
+                    // Ctrl+Enter or Cmd+Enter to submit
+                    if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+                      e.preventDefault();
+                      handleCardSubmit();
+                    }
+                  }}
+                  placeholder="Add description... (Ctrl+Enter to save)"
+                  className="min-h-[100px] w-full resize-none bg-transparent text-sm text-white/90 placeholder-white/50 focus:outline-none"
+                  style={{
+                    textShadow: "0 1px 2px rgba(0,0,0,0.3)",
+                  }}
+                />
+              </div>
+
+              {/* Submit button */}
+              <div className="flex justify-end gap-2 border-t border-white/20 px-4 py-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCardInput({ x: 0, y: 0, visible: false });
+                    setCardHeader("");
+                    setCardDescription("");
+                  }}
+                  className="rounded px-3 py-1 text-xs font-medium text-white/70 hover:bg-white/10"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleCardSubmit}
+                  className="rounded bg-white/20 px-3 py-1 text-xs font-medium text-white hover:bg-white/30"
+                >
+                  Done
+                </button>
+              </div>
+            </div>
+          </div>
+        </>
       )}
     </div>
   );

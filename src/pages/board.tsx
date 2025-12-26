@@ -265,8 +265,6 @@ export function BoardPage() {
             onStrokeWidthChange={setActiveStrokeWidth}
           />
         )}
-
-        <QuickActions onFitToScreen={() => setZoom(100)} />
       </div>
 
       {/* View-only banner for viewers */}

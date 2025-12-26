@@ -275,16 +275,6 @@ export function BoardHeader({
                   <Copy className="h-4 w-4" />
                   Copy link
                 </button>
-                <button
-                  onClick={() => {
-                    onExport?.();
-                    setMenuOpen(false);
-                  }}
-                  className="flex w-full items-center gap-2 px-3 py-2 text-sm text-[var(--color-text-muted)] hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text)]"
-                >
-                  <Download className="h-4 w-4" />
-                  Export as PNG
-                </button>
                 {userRole === "owner" && (
                   <>
                     <div className="my-1 h-px bg-[var(--color-border)]" />

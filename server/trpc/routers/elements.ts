@@ -8,6 +8,8 @@ const elementContentSchema = z.object({
   endX: z.number().optional(),
   endY: z.number().optional(),
   text: z.string().optional(),
+  header: z.string().optional(),
+  description: z.string().optional(),
   color: z.string().optional(),
   strokeWidth: z.number().optional(),
   fill: z.string().optional(),
@@ -20,6 +22,7 @@ const elementTypeMap = {
   circle: "shape",
   text: "text",
   sticky: "sticky_note",
+  card: "sticky_note", // Using sticky_note type for card in DB
 } as const;
 
 const dbTypeMap = {
@@ -27,7 +30,7 @@ const dbTypeMap = {
   connector: "line",
   shape: "rectangle", // Will need to check content for circle
   text: "text",
-  sticky_note: "sticky",
+  sticky_note: "sticky", // Will check canvasType to distinguish sticky vs card
   image: "image",
 } as const;
 
@@ -79,6 +82,8 @@ export const elementsRouter = router({
           endX: content.endX as number | undefined,
           endY: content.endY as number | undefined,
           text: content.text as string | undefined,
+          header: content.header as string | undefined,
+          description: content.description as string | undefined,
           color: (content.color as string) || "#3b82f6",
           strokeWidth: (content.strokeWidth as number) || 4,
           fill: content.fill as string | undefined,
@@ -102,6 +107,8 @@ export const elementsRouter = router({
           endX: z.number().optional(),
           endY: z.number().optional(),
           text: z.string().optional(),
+          header: z.string().optional(),
+          description: z.string().optional(),
           color: z.string(),
           strokeWidth: z.number(),
           fill: z.string().optional(),
@@ -149,6 +156,8 @@ export const elementsRouter = router({
             endX: el.endX,
             endY: el.endY,
             text: el.text,
+            header: el.header,
+            description: el.description,
             color: el.color,
             strokeWidth: el.strokeWidth,
             fill: el.fill,
@@ -175,6 +184,8 @@ export const elementsRouter = router({
           endX: z.number().optional(),
           endY: z.number().optional(),
           text: z.string().optional(),
+          header: z.string().optional(),
+          description: z.string().optional(),
           color: z.string().optional(),
           strokeWidth: z.number().optional(),
           fill: z.string().optional(),
@@ -269,6 +280,8 @@ export const elementsRouter = router({
             endX: z.number().optional(),
             endY: z.number().optional(),
             text: z.string().optional(),
+            header: z.string().optional(),
+            description: z.string().optional(),
             color: z.string(),
             strokeWidth: z.number(),
             fill: z.string().optional(),
@@ -315,6 +328,8 @@ export const elementsRouter = router({
               endX: el.endX,
               endY: el.endY,
               text: el.text,
+              header: el.header,
+              description: el.description,
               color: el.color,
               strokeWidth: el.strokeWidth,
               fill: el.fill,

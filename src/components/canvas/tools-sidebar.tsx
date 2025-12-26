@@ -8,6 +8,7 @@ import {
   Pencil,
   Minus,
   Eraser,
+  CreditCard,
 } from "lucide-react";
 import type { Tool } from "./canvas";
 
@@ -20,6 +21,7 @@ const tools: { id: Tool; icon: React.ElementType; label: string; shortcut?: stri
   { id: "circle", icon: Circle, label: "Circle", shortcut: "O" },
   { id: "text", icon: Type, label: "Text", shortcut: "T" },
   { id: "sticky", icon: StickyNote, label: "Sticky Note", shortcut: "S" },
+  { id: "card", icon: CreditCard, label: "Card", shortcut: "C" },
   { id: "eraser", icon: Eraser, label: "Eraser", shortcut: "E" },
 ];
 
