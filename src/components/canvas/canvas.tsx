@@ -44,6 +44,7 @@ interface CanvasProps {
   zoom: number;
   onZoomChange: (zoom: number) => void;
   onSavingChange?: (isSaving: boolean) => void;
+  onCursorMove?: (x: number, y: number) => void;
   readOnly?: boolean;
 }
 
@@ -52,10 +53,22 @@ export interface CanvasRef {
   redo: () => void;
   canUndo: boolean;
   canRedo: boolean;
+  offset: { x: number; y: number };
+  zoom: number;
 }
 
 export const Canvas = forwardRef<CanvasRef, CanvasProps>(function Canvas(
-  { boardId, activeTool, color, strokeWidth, zoom, onZoomChange, onSavingChange, readOnly = false },
+  {
+    boardId,
+    activeTool,
+    color,
+    strokeWidth,
+    zoom,
+    onZoomChange,
+    onSavingChange,
+    onCursorMove,
+    readOnly = false,
+  },
   ref
 ) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -210,8 +223,10 @@ export const Canvas = forwardRef<CanvasRef, CanvasProps>(function Canvas(
       redo,
       canUndo: historyIndex > 0,
       canRedo: historyIndex < history.length - 1,
+      offset,
+      zoom,
     }),
-    [undo, redo, historyIndex, history.length]
+    [undo, redo, historyIndex, history.length, offset, zoom]
   );
 
   // Get mouse position relative to canvas with zoom and offset
@@ -638,6 +653,12 @@ export const Canvas = forwardRef<CanvasRef, CanvasProps>(function Canvas(
 
   // Mouse move handler
   const handleMouseMove = (e: React.MouseEvent) => {
+    // Broadcast cursor position for live cursors
+    if (onCursorMove) {
+      const point = getCanvasPoint(e);
+      onCursorMove(point.x, point.y);
+    }
+
     if (isPanning) {
       setOffset({
         x: e.clientX - panStart.x,

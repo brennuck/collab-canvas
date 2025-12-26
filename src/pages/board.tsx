@@ -1,11 +1,13 @@
 import { useState, useRef, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { trpc } from "@/lib/trpc";
+import { useAuth } from "@/hooks/use-auth";
+import { useLiveCursors } from "@/hooks/use-live-cursors";
 import { Canvas, type Tool, type CanvasRef } from "@/components/canvas/canvas";
 import { ToolsSidebar, tools } from "@/components/canvas/tools-sidebar";
 import { BoardHeader } from "@/components/canvas/board-header";
 import { StyleToolbar } from "@/components/canvas/style-toolbar";
-import { QuickActions } from "@/components/canvas/quick-actions";
+import { LiveCursors } from "@/components/canvas/live-cursors";
 import { InviteModal } from "@/components/boards/invite-modal";
 import { BoardSettingsModal } from "@/components/boards/board-settings-modal";
 import { ConfirmModal } from "@/components/ui/modal";
@@ -16,6 +18,7 @@ export function BoardPage() {
   const navigate = useNavigate();
   const utils = trpc.useUtils();
   const canvasRef = useRef<CanvasRef>(null);
+  const { user } = useAuth();
 
   // Canvas state
   const [activeTool, setActiveTool] = useState<Tool>("pencil");
@@ -29,6 +32,17 @@ export function BoardPage() {
 
   // Saving state
   const [isSaving, setIsSaving] = useState(false);
+
+  // Canvas offset for live cursors (updated from ref)
+  const [canvasOffset, setCanvasOffset] = useState({ x: 0, y: 0 });
+
+  // Live cursors
+  const { cursors, updateCursor, isConnected } = useLiveCursors({
+    boardId: id || "",
+    userId: user?.id || null,
+    userName: user?.name || user?.email || "Anonymous",
+    enabled: !!id,
+  });
 
   // Modal states
   const [shareModalOpen, setShareModalOpen] = useState(false);
@@ -68,12 +82,13 @@ export function BoardPage() {
     },
   });
 
-  // Sync history state from canvas ref
+  // Sync history state and offset from canvas ref
   useEffect(() => {
     const interval = setInterval(() => {
       if (canvasRef.current) {
         setCanUndo(canvasRef.current.canUndo);
         setCanRedo(canvasRef.current.canRedo);
+        setCanvasOffset(canvasRef.current.offset);
       }
     }, 100);
     return () => clearInterval(interval);
@@ -236,7 +251,7 @@ export function BoardPage() {
         canRedo={canEdit ? canRedo : false}
         onUndo={canEdit ? handleUndo : undefined}
         onRedo={canEdit ? handleRedo : undefined}
-        isConnected={true}
+        isConnected={isConnected}
         isSaving={isSaving || renameBoard.isPending}
       />
 
@@ -253,8 +268,12 @@ export function BoardPage() {
           zoom={zoom}
           onZoomChange={setZoom}
           onSavingChange={setIsSaving}
+          onCursorMove={updateCursor}
           readOnly={!canEdit}
         />
+
+        {/* Live cursors overlay */}
+        <LiveCursors cursors={cursors} zoom={zoom} offset={canvasOffset} />
 
         {/* Only show style toolbar if user can edit */}
         {canEdit && (
