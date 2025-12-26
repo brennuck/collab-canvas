@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { trpc } from "@/lib/trpc";
 import { getInitials } from "@/lib/format";
+import { Canvas, type Tool } from "@/components/canvas/canvas";
 import {
   ArrowLeft,
   MousePointer2,
@@ -25,39 +26,64 @@ import {
   Maximize,
 } from "lucide-react";
 
-type Tool =
-  | "select"
-  | "pan"
-  | "rectangle"
-  | "circle"
-  | "text"
-  | "sticky"
-  | "pencil"
-  | "line"
-  | "eraser";
+const tools: { id: Tool; icon: React.ElementType; label: string; shortcut?: string }[] = [
+  { id: "select", icon: MousePointer2, label: "Select", shortcut: "V" },
+  { id: "pan", icon: Hand, label: "Pan", shortcut: "H" },
+  { id: "pencil", icon: Pencil, label: "Draw", shortcut: "P" },
+  { id: "line", icon: Minus, label: "Line", shortcut: "L" },
+  { id: "rectangle", icon: Square, label: "Rectangle", shortcut: "R" },
+  { id: "circle", icon: Circle, label: "Circle", shortcut: "O" },
+  { id: "text", icon: Type, label: "Text", shortcut: "T" },
+  { id: "sticky", icon: StickyNote, label: "Sticky Note", shortcut: "S" },
+  { id: "eraser", icon: Eraser, label: "Eraser", shortcut: "E" },
+];
 
-const tools: { id: Tool; icon: React.ElementType; label: string }[] = [
-  { id: "select", icon: MousePointer2, label: "Select" },
-  { id: "pan", icon: Hand, label: "Pan" },
-  { id: "pencil", icon: Pencil, label: "Draw" },
-  { id: "line", icon: Minus, label: "Line" },
-  { id: "rectangle", icon: Square, label: "Rectangle" },
-  { id: "circle", icon: Circle, label: "Circle" },
-  { id: "text", icon: Type, label: "Text" },
-  { id: "sticky", icon: StickyNote, label: "Sticky Note" },
-  { id: "eraser", icon: Eraser, label: "Eraser" },
+const colors = [
+  "#3b82f6", // blue
+  "#ef4444", // red
+  "#22c55e", // green
+  "#f59e0b", // amber
+  "#8b5cf6", // purple
+  "#ec4899", // pink
+  "#ffffff", // white
+  "#000000", // black
+];
+
+const strokeWidths = [
+  { value: 2, height: "h-0.5" },
+  { value: 4, height: "h-1" },
+  { value: 8, height: "h-1.5" },
 ];
 
 export function BoardPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [activeTool, setActiveTool] = useState<Tool>("select");
-  const [zoom, setZoom] = useState(100);
 
-  const { data: board, isLoading, error } = trpc.boards.get.useQuery(
-    { id: id! },
-    { enabled: !!id }
-  );
+  // Canvas state
+  const [activeTool, setActiveTool] = useState<Tool>("pencil");
+  const [zoom, setZoom] = useState(100);
+  const [activeColor, setActiveColor] = useState("#3b82f6");
+  const [activeStrokeWidth, setActiveStrokeWidth] = useState(4);
+
+  const {
+    data: board,
+    isLoading,
+    error,
+  } = trpc.boards.get.useQuery({ id: id! }, { enabled: !!id });
+
+  // Keyboard shortcuts
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    // Don't trigger if typing in an input
+    if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+      return;
+    }
+
+    const key = e.key.toLowerCase();
+    const tool = tools.find((t) => t.shortcut?.toLowerCase() === key);
+    if (tool) {
+      setActiveTool(tool.id);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -84,13 +110,14 @@ export function BoardPage() {
     );
   }
 
-  const allMembers = [
-    { ...board.owner, role: "owner" as const },
-    ...board.members,
-  ];
+  const allMembers = [{ ...board.owner, role: "owner" as const }, ...board.members];
 
   return (
-    <div className="flex h-screen flex-col bg-[var(--color-surface)]">
+    <div
+      className="flex h-screen flex-col bg-[var(--color-surface)]"
+      onKeyDown={handleKeyDown}
+      tabIndex={0}
+    >
       {/* Top Navbar */}
       <header className="flex h-12 shrink-0 items-center justify-between border-b border-[var(--color-border)] bg-[var(--color-surface-elevated)] px-3">
         {/* Left: Back + Board Name */}
@@ -114,13 +141,13 @@ export function BoardPage() {
         <div className="flex items-center gap-1">
           <button
             className="rounded-lg p-1.5 text-[var(--color-text-muted)] transition-colors hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text)] disabled:opacity-40"
-            title="Undo"
+            title="Undo (Ctrl+Z)"
           >
             <Undo2 className="h-4 w-4" />
           </button>
           <button
             className="rounded-lg p-1.5 text-[var(--color-text-muted)] transition-colors hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text)] disabled:opacity-40"
-            title="Redo"
+            title="Redo (Ctrl+Shift+Z)"
           >
             <Redo2 className="h-4 w-4" />
           </button>
@@ -134,9 +161,13 @@ export function BoardPage() {
           >
             <ZoomOut className="h-4 w-4" />
           </button>
-          <span className="min-w-[3rem] text-center text-xs font-medium text-[var(--color-text-muted)]">
+          <button
+            onClick={() => setZoom(100)}
+            className="min-w-[3rem] rounded px-1 py-0.5 text-center text-xs font-medium text-[var(--color-text-muted)] transition-colors hover:bg-[var(--color-surface-hover)]"
+            title="Reset zoom"
+          >
             {zoom}%
-          </span>
+          </button>
           <button
             onClick={() => setZoom((z) => Math.min(400, z + 25))}
             className="rounded-lg p-1.5 text-[var(--color-text-muted)] transition-colors hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text)]"
@@ -200,7 +231,7 @@ export function BoardPage() {
                     ? "bg-[var(--color-accent)] text-white"
                     : "text-[var(--color-text-muted)] hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text)]"
                 }`}
-                title={tool.label}
+                title={`${tool.label}${tool.shortcut ? ` (${tool.shortcut})` : ""}`}
               >
                 <Icon className="h-4 w-4" />
               </button>
@@ -209,65 +240,58 @@ export function BoardPage() {
         </aside>
 
         {/* Canvas Area */}
-        <div
-          className="flex-1 cursor-crosshair"
-          style={{
-            backgroundImage: `
-              linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
-              linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px)
-            `,
-            backgroundSize: "20px 20px",
-            backgroundPosition: "center center",
-          }}
-        >
-          {/* Canvas will be rendered here */}
-          <div className="flex h-full items-center justify-center">
-            <div className="rounded-xl border border-dashed border-[var(--color-border)] bg-[var(--color-surface-elevated)]/30 px-8 py-6 text-center">
-              <p className="text-sm text-[var(--color-text-muted)]">
-                Canvas area • Click and drag to start drawing
-              </p>
-              <p className="mt-1 text-xs text-[var(--color-text-muted)]/60">
-                Active tool: <span className="font-medium text-[var(--color-accent)]">{activeTool}</span>
-              </p>
-            </div>
-          </div>
-        </div>
+        <Canvas
+          activeTool={activeTool}
+          color={activeColor}
+          strokeWidth={activeStrokeWidth}
+          zoom={zoom}
+          onZoomChange={setZoom}
+        />
 
         {/* Bottom Toolbar */}
         <div className="absolute bottom-3 left-1/2 z-10 flex -translate-x-1/2 items-center gap-2 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-elevated)] px-3 py-2 shadow-lg">
           {/* Color Picker */}
           <div className="flex items-center gap-1.5">
-            {["#3b82f6", "#ef4444", "#22c55e", "#f59e0b", "#8b5cf6", "#ec4899", "#ffffff", "#000000"].map(
-              (color) => (
-                <button
-                  key={color}
-                  className="h-5 w-5 rounded-full border border-[var(--color-border)] transition-transform hover:scale-110"
-                  style={{ backgroundColor: color }}
-                  title={color}
-                />
-              )
-            )}
+            {colors.map((color) => (
+              <button
+                key={color}
+                onClick={() => setActiveColor(color)}
+                className={`h-5 w-5 rounded-full border transition-transform hover:scale-110 ${
+                  activeColor === color
+                    ? "border-[var(--color-accent)] ring-2 ring-[var(--color-accent)] ring-offset-1 ring-offset-[var(--color-surface-elevated)]"
+                    : "border-[var(--color-border)]"
+                }`}
+                style={{ backgroundColor: color }}
+                title={color}
+              />
+            ))}
           </div>
 
           <div className="h-5 w-px bg-[var(--color-border)]" />
 
           {/* Stroke Width */}
           <div className="flex items-center gap-1.5">
-            <button className="flex h-6 w-6 items-center justify-center rounded-lg text-[var(--color-text-muted)] transition-colors hover:bg-[var(--color-surface-hover)]">
-              <div className="h-0.5 w-3 rounded-full bg-current" />
-            </button>
-            <button className="flex h-6 w-6 items-center justify-center rounded-lg text-[var(--color-text-muted)] transition-colors hover:bg-[var(--color-surface-hover)]">
-              <div className="h-1 w-3 rounded-full bg-current" />
-            </button>
-            <button className="flex h-6 w-6 items-center justify-center rounded-lg bg-[var(--color-accent-muted)] text-[var(--color-accent)]">
-              <div className="h-1.5 w-3 rounded-full bg-current" />
-            </button>
+            {strokeWidths.map((sw) => (
+              <button
+                key={sw.value}
+                onClick={() => setActiveStrokeWidth(sw.value)}
+                className={`flex h-6 w-6 items-center justify-center rounded-lg transition-colors ${
+                  activeStrokeWidth === sw.value
+                    ? "bg-[var(--color-accent-muted)] text-[var(--color-accent)]"
+                    : "text-[var(--color-text-muted)] hover:bg-[var(--color-surface-hover)]"
+                }`}
+                title={`Stroke width: ${sw.value}px`}
+              >
+                <div className={`${sw.height} w-3 rounded-full bg-current`} />
+              </button>
+            ))}
           </div>
         </div>
 
         {/* Minimap / Quick Actions */}
         <div className="absolute bottom-3 right-3 z-10 flex flex-col gap-1 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-elevated)] p-1.5 shadow-lg">
           <button
+            onClick={() => setZoom(100)}
             className="rounded-lg p-2 text-[var(--color-text-muted)] transition-colors hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text)]"
             title="Fit to screen"
           >
@@ -290,4 +314,3 @@ export function BoardPage() {
     </div>
   );
 }
-
