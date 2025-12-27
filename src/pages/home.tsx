@@ -186,13 +186,22 @@ function CanvasPreview() {
 
           {/* AI suggestion popup */}
           <div className="animate-pulse-glow absolute bottom-[15%] right-[8%] rounded-xl border border-[var(--color-accent)] bg-[var(--color-surface-elevated)] p-3 shadow-xl">
-            <div className="mb-2 flex items-center gap-2">
+            <div className="mb-2 flex items-center justify-start">
+              <div className="inline-flex items-center gap-1 rounded-full border border-amber-500/30 bg-amber-500/10 px-1.5 py-0.5">
+                <span className="relative flex h-1 w-1">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-400 opacity-75"></span>
+                  <span className="relative inline-flex h-1 w-1 rounded-full bg-amber-500"></span>
+                </span>
+                <span className="text-[9px] font-medium text-amber-500">Coming soon</span>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
               <Sparkles className="h-4 w-4 text-[var(--color-accent)]" />
               <span className="text-xs font-semibold text-[var(--color-accent)]">
                 AI Suggestion
               </span>
             </div>
-            <p className="max-w-[140px] text-[10px] text-[var(--color-text-muted)]">
+            <p className="mt-1.5 max-w-[140px] text-[10px] text-[var(--color-text-muted)]">
               Group these notes into themes?
             </p>
           </div>
