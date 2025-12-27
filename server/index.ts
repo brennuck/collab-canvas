@@ -4,11 +4,17 @@ import { createServer } from "http";
 import { Server } from "socket.io";
 import cors from "cors";
 import cookieParser from "cookie-parser";
+import path from "path";
+import { fileURLToPath } from "url";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
 import { appRouter } from "./trpc/routers";
 import { lucia } from "./auth/lucia";
 import { db } from "./db";
 import type { Context } from "./trpc/trpc";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const rootDir = path.resolve(__dirname, "..");
 
 const app = express();
 const httpServer = createServer(app);
@@ -209,8 +215,22 @@ app.get("/api/health", (_req, res) => {
   res.json({ status: "ok", timestamp: new Date().toISOString() });
 });
 
+// Serve static files in production
+if (process.env.NODE_ENV === "production") {
+  const clientDistPath = path.join(rootDir, "dist/client");
+  app.use(express.static(clientDistPath));
+
+  // Serve index.html for all non-API routes (SPA routing)
+  app.get("*", (_req, res) => {
+    res.sendFile(path.join(clientDistPath, "index.html"));
+  });
+}
+
 httpServer.listen(port, () => {
   console.log(`🚀 Server running at http://localhost:${port}`);
   console.log(`📡 tRPC endpoint: http://localhost:${port}/api/trpc`);
   console.log(`🔌 Socket.IO ready for real-time connections`);
+  if (process.env.NODE_ENV === "production") {
+    console.log(`📦 Serving static files from ${path.join(rootDir, "dist/client")}`);
+  }
 });
