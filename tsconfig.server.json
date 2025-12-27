@@ -4,7 +4,7 @@
     "lib": ["ES2023"],
     "module": "ESNext",
     "skipLibCheck": true,
-    "moduleResolution": "node16",
+    "moduleResolution": "Node16",
     "outDir": "./dist/server",
     "rootDir": "./server",
     "strict": true,
