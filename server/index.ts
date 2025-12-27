@@ -14,7 +14,6 @@ import type { Context } from "./trpc/trpc.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const rootDir = path.resolve(__dirname, "..");
 
 const app = express();
 const httpServer = createServer(app);
@@ -217,7 +216,8 @@ app.get("/api/health", (_req, res) => {
 
 // Serve static files in production
 if (process.env.NODE_ENV === "production") {
-  const clientDistPath = path.join(rootDir, "dist/client");
+  // From dist/server/, go up one level to dist/, then into client/
+  const clientDistPath = path.join(__dirname, "../client");
   app.use(express.static(clientDistPath));
 
   // Serve index.html for all non-API routes (SPA routing)
@@ -231,6 +231,6 @@ httpServer.listen(port, () => {
   console.log(`📡 tRPC endpoint: http://localhost:${port}/api/trpc`);
   console.log(`🔌 Socket.IO ready for real-time connections`);
   if (process.env.NODE_ENV === "production") {
-    console.log(`📦 Serving static files from ${path.join(rootDir, "dist/client")}`);
+    console.log(`📦 Serving static files from ${path.join(__dirname, "../client")}`);
   }
 });
