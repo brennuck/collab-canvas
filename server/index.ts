@@ -7,10 +7,10 @@ import cookieParser from "cookie-parser";
 import path from "path";
 import { fileURLToPath } from "url";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
-import { appRouter } from "./trpc/routers";
-import { lucia } from "./auth/lucia";
-import { db } from "./db";
-import type { Context } from "./trpc/trpc";
+import { appRouter } from "./trpc/routers/index.js";
+import { lucia } from "./auth/lucia.js";
+import { db } from "./db/index.js";
+import type { Context } from "./trpc/trpc.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);

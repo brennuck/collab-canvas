@@ -1,8 +1,8 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { router, publicProcedure, protectedProcedure } from "../trpc";
-import { lucia } from "@server/auth/lucia";
-import { hash, verify } from "@server/lib/password";
+import { router, publicProcedure, protectedProcedure } from "../trpc.js";
+import { lucia } from "../../auth/lucia.js";
+import { hash, verify } from "../../lib/password.js";
 import { generateIdFromEntropySize } from "lucia";
 
 const registerSchema = z.object({

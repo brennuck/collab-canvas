@@ -3,7 +3,7 @@ import type { Request, Response } from "express";
 import type { Session, User } from "lucia";
 import superjson from "superjson";
 import { ZodError } from "zod";
-import { db } from "@server/db";
+import { db } from "../db/index.js";
 
 export interface Context {
   req: Request;

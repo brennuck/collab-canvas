@@ -1,7 +1,7 @@
-import { router } from "../trpc";
-import { authRouter } from "./auth";
-import { boardsRouter } from "./boards";
-import { elementsRouter } from "./elements";
+import { router } from "../trpc.js";
+import { authRouter } from "./auth.js";
+import { boardsRouter } from "./boards.js";
+import { elementsRouter } from "./elements.js";
 
 export const appRouter = router({
   auth: authRouter,
