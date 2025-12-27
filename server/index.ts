@@ -17,7 +17,7 @@ const port = process.env.PORT || 3000;
 // Socket.IO for real-time features
 const io = new Server(httpServer, {
   cors: {
-    origin: "http://localhost:5173",
+    origin: process.env.CLIENT_URL || "http://localhost:5173",
     credentials: true,
   },
 });
@@ -160,7 +160,7 @@ io.on("connection", (socket) => {
 });
 
 // Middleware
-app.use(cors({ origin: "http://localhost:5173", credentials: true }));
+app.use(cors({ origin: process.env.CLIENT_URL || "http://localhost:5173", credentials: true }));
 app.use(cookieParser());
 app.use(express.json());
 
