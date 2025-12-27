@@ -50,7 +50,9 @@ function generateUserColor(userId: string): string {
   for (let i = 0; i < userId.length; i++) {
     hash = userId.charCodeAt(i) + ((hash << 5) - hash);
   }
-  return colors[Math.abs(hash) % colors.length];
+  const index = Math.abs(hash) % colors.length;
+  const color = colors[index];
+  return color ?? colors[0]!;
 }
 
 export function useLiveCursors({
@@ -75,17 +77,28 @@ export function useLiveCursors({
     onElementDeleted,
     onElementsSynced,
   });
-  callbacksRef.current = { onElementAdded, onElementUpdated, onElementDeleted, onElementsSynced };
 
-  // Generate stable anonymous ID
-  const anonIdRef = useRef(`anon_${Math.random().toString(36).substr(2, 9)}`);
-  const odId = userId || anonIdRef.current;
+  // Update callbacks ref in effect to avoid updating during render
+  useEffect(() => {
+    callbacksRef.current = { onElementAdded, onElementUpdated, onElementDeleted, onElementsSynced };
+  }, [onElementAdded, onElementUpdated, onElementDeleted, onElementsSynced]);
+
+  // Generate stable anonymous ID using useState with lazy initializer
+  const [anonId] = useState(() => `anon_${Math.random().toString(36).substr(2, 9)}`);
+  const odId = userId || anonId;
 
   // Connect to socket
   useEffect(() => {
     if (!enabled || !boardId) return;
 
-    const socket = io("http://localhost:3000", {
+    // Use current origin in production, localhost in development
+    // Check if we're in development by looking at the hostname
+    const isDevelopment =
+      typeof window !== "undefined" &&
+      (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1");
+    const socketUrl = isDevelopment ? "http://localhost:3000" : window.location.origin;
+
+    const socket = io(socketUrl, {
       withCredentials: true,
       transports: ["websocket", "polling"],
     });
