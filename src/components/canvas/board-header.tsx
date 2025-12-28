@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { getInitials } from "@/lib/format";
+import { useIsMobile } from "@/hooks/use-mobile";
 import {
   ArrowLeft,
   Undo2,
@@ -9,14 +10,14 @@ import {
   ZoomOut,
   Share2,
   MoreHorizontal,
-  Check,
   Pencil,
-  Download,
   Trash2,
   Copy,
   Settings,
   Wifi,
   WifiOff,
+  Menu,
+  X,
 } from "lucide-react";
 
 interface Member {
@@ -60,7 +61,6 @@ export function BoardHeader({
   onZoomReset,
   onRename,
   onShare,
-  onExport,
   onDelete,
   onSettings,
   canUndo = false,
@@ -72,9 +72,11 @@ export function BoardHeader({
   onlineUserIds = new Set(),
   onlineCount: externalOnlineCount,
 }: BoardHeaderProps) {
+  const isMobile = useIsMobile();
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState(boardName);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Focus input when editing starts
@@ -109,6 +111,220 @@ export function BoardHeader({
   // Use external online count from socket, or fallback to counting from set
   const onlineCount = externalOnlineCount ?? onlineUserIds.size;
 
+  // Mobile header
+  if (isMobile) {
+    return (
+      <>
+        <header className="flex h-12 shrink-0 items-center justify-between border-b border-[var(--color-border)] bg-[var(--color-surface-elevated)] px-2 pt-safe">
+          {/* Left: Back + Name */}
+          <div className="flex min-w-0 flex-1 items-center gap-2">
+            <Link
+              to="/dashboard"
+              className="shrink-0 rounded-lg p-2 text-[var(--color-text-muted)] transition-colors active:bg-[var(--color-surface-hover)]"
+              aria-label="Back to dashboard"
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </Link>
+
+            <div className="min-w-0 flex-1">
+              <h1 className="truncate text-sm font-semibold text-[var(--color-text)]">
+                {boardName}
+              </h1>
+              <div className="flex items-center gap-1.5 text-xs text-[var(--color-text-muted)]">
+                {isConnected ? (
+                  <>
+                    <Wifi className="h-3 w-3 text-emerald-500" />
+                    {isSaving && <span>Saving...</span>}
+                    {!isSaving && onlineCount > 1 && <span>{onlineCount} online</span>}
+                  </>
+                ) : (
+                  <>
+                    <WifiOff className="h-3 w-3 text-amber-500" />
+                    <span>Offline</span>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Right: Actions */}
+          <div className="flex shrink-0 items-center gap-1">
+            {/* Undo/Redo */}
+            {onUndo && (
+              <button
+                onClick={onUndo}
+                disabled={!canUndo}
+                className="rounded-lg p-2 text-[var(--color-text-muted)] transition-colors active:bg-[var(--color-surface-hover)] disabled:opacity-40"
+                aria-label="Undo"
+              >
+                <Undo2 className="h-5 w-5" />
+              </button>
+            )}
+            {onRedo && (
+              <button
+                onClick={onRedo}
+                disabled={!canRedo}
+                className="rounded-lg p-2 text-[var(--color-text-muted)] transition-colors active:bg-[var(--color-surface-hover)] disabled:opacity-40"
+                aria-label="Redo"
+              >
+                <Redo2 className="h-5 w-5" />
+              </button>
+            )}
+
+            {/* Menu button */}
+            <button
+              onClick={() => setMobileMenuOpen(true)}
+              className="rounded-lg p-2 text-[var(--color-text-muted)] transition-colors active:bg-[var(--color-surface-hover)]"
+              aria-label="Menu"
+            >
+              <Menu className="h-5 w-5" />
+            </button>
+          </div>
+        </header>
+
+        {/* Mobile menu sheet */}
+        {mobileMenuOpen && (
+          <>
+            <div
+              className="fixed inset-0 z-40 bg-black/30"
+              onClick={() => setMobileMenuOpen(false)}
+            />
+            <div className="fixed inset-x-0 top-0 z-50 animate-slide-down rounded-b-2xl border-b border-[var(--color-border)] bg-[var(--color-surface-elevated)] pt-safe shadow-xl">
+              {/* Header */}
+              <div className="flex items-center justify-between border-b border-[var(--color-border)] px-4 py-3">
+                <span className="text-sm font-semibold text-[var(--color-text)]">Menu</span>
+                <button
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="rounded-lg p-1.5 text-[var(--color-text-muted)]"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+
+              {/* Zoom controls */}
+              <div className="border-b border-[var(--color-border)] p-4">
+                <span className="mb-3 block text-xs font-medium uppercase tracking-wider text-[var(--color-text-muted)]">
+                  Zoom
+                </span>
+                <div className="flex items-center justify-center gap-4">
+                  <button
+                    onClick={onZoomOut}
+                    className="flex h-12 w-12 items-center justify-center rounded-xl bg-[var(--color-surface-hover)] text-[var(--color-text-muted)] active:bg-[var(--color-accent-muted)]"
+                    aria-label="Zoom out"
+                  >
+                    <ZoomOut className="h-5 w-5" />
+                  </button>
+                  <button
+                    onClick={onZoomReset}
+                    className="min-w-[4rem] rounded-xl bg-[var(--color-surface-hover)] px-4 py-3 text-center text-sm font-medium text-[var(--color-text)]"
+                  >
+                    {zoom}%
+                  </button>
+                  <button
+                    onClick={onZoomIn}
+                    className="flex h-12 w-12 items-center justify-center rounded-xl bg-[var(--color-surface-hover)] text-[var(--color-text-muted)] active:bg-[var(--color-accent-muted)]"
+                    aria-label="Zoom in"
+                  >
+                    <ZoomIn className="h-5 w-5" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Members */}
+              <div className="border-b border-[var(--color-border)] p-4">
+                <span className="mb-3 block text-xs font-medium uppercase tracking-wider text-[var(--color-text-muted)]">
+                  Collaborators ({members.length})
+                </span>
+                <div className="flex flex-wrap gap-2">
+                  {members.slice(0, 8).map((member) => {
+                    const isOnline = isMemberOnline(member.id);
+                    return (
+                      <div
+                        key={member.id}
+                        className={`relative flex h-10 w-10 items-center justify-center rounded-full text-xs font-semibold text-white ${
+                          isOnline
+                            ? "bg-gradient-to-br from-[var(--color-accent)] to-[var(--color-tertiary)]"
+                            : "bg-[var(--color-text-muted)]/50"
+                        }`}
+                        title={member.name ?? member.email}
+                      >
+                        {getInitials(member.name, member.email)}
+                        {isOnline && (
+                          <div className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-[var(--color-surface-elevated)] bg-emerald-500" />
+                        )}
+                      </div>
+                    );
+                  })}
+                  {members.length > 8 && (
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--color-surface-hover)] text-xs font-semibold text-[var(--color-text-muted)]">
+                      +{members.length - 8}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="p-4">
+                <div className="flex flex-col gap-2">
+                  {onShare && (
+                    <button
+                      onClick={() => {
+                        setMobileMenuOpen(false);
+                        onShare();
+                      }}
+                      className="flex items-center gap-3 rounded-xl bg-[var(--color-accent)] px-4 py-3 text-sm font-medium text-white"
+                    >
+                      <Share2 className="h-5 w-5" />
+                      Share Board
+                    </button>
+                  )}
+
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(window.location.href);
+                      setMobileMenuOpen(false);
+                    }}
+                    className="flex items-center gap-3 rounded-xl bg-[var(--color-surface-hover)] px-4 py-3 text-sm text-[var(--color-text)]"
+                  >
+                    <Copy className="h-5 w-5 text-[var(--color-text-muted)]" />
+                    Copy Link
+                  </button>
+
+                  {userRole === "owner" && onSettings && (
+                    <button
+                      onClick={() => {
+                        setMobileMenuOpen(false);
+                        onSettings();
+                      }}
+                      className="flex items-center gap-3 rounded-xl bg-[var(--color-surface-hover)] px-4 py-3 text-sm text-[var(--color-text)]"
+                    >
+                      <Settings className="h-5 w-5 text-[var(--color-text-muted)]" />
+                      Board Settings
+                    </button>
+                  )}
+
+                  {userRole === "owner" && onDelete && (
+                    <button
+                      onClick={() => {
+                        setMobileMenuOpen(false);
+                        onDelete();
+                      }}
+                      className="flex items-center gap-3 rounded-xl bg-red-500/10 px-4 py-3 text-sm text-red-400"
+                    >
+                      <Trash2 className="h-5 w-5" />
+                      Delete Board
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          </>
+        )}
+      </>
+    );
+  }
+
+  // Desktop header (original)
   return (
     <header className="flex h-12 shrink-0 items-center justify-between border-b border-[var(--color-border)] bg-[var(--color-surface-elevated)] px-3">
       {/* Left: Back + Board Name */}
@@ -256,14 +472,16 @@ export function BoardHeader({
         </div>
 
         {/* Share Button */}
-        <button
-          onClick={onShare}
-          className="flex items-center gap-1.5 rounded-lg bg-[var(--color-accent)] px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-[var(--color-accent-hover)]"
-          title="Share this board"
-        >
-          <Share2 className="h-3.5 w-3.5" />
-          Share
-        </button>
+        {onShare && (
+          <button
+            onClick={onShare}
+            className="flex items-center gap-1.5 rounded-lg bg-[var(--color-accent)] px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-[var(--color-accent-hover)]"
+            title="Share this board"
+          >
+            <Share2 className="h-3.5 w-3.5" />
+            Share
+          </button>
+        )}
 
         {/* More Options Menu */}
         <div className="relative">

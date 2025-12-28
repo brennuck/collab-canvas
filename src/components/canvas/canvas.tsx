@@ -34,6 +34,8 @@ export interface CanvasElement {
   color: string;
   strokeWidth: number;
   fill?: string;
+  // Index signature for SyncElement compatibility
+  [key: string]: unknown;
 }
 
 interface CanvasProps {
@@ -277,9 +279,13 @@ export const Canvas = forwardRef<CanvasRef, CanvasProps>(function Canvas(
     ]
   );
 
-  // Get mouse position relative to canvas with zoom and offset
+  // Touch state for multi-touch gestures
+  const [lastPinchDistance, setLastPinchDistance] = useState<number | null>(null);
+  const [pinchWorldCenter, setPinchWorldCenter] = useState<Point | null>(null); // Fixed world point at gesture start
+
+  // Get mouse/touch position relative to canvas with zoom and offset
   const getCanvasPoint = useCallback(
-    (e: React.MouseEvent): Point => {
+    (clientX: number, clientY: number): Point => {
       const canvas = canvasRef.current;
       if (!canvas) return { x: 0, y: 0 };
 
@@ -288,12 +294,46 @@ export const Canvas = forwardRef<CanvasRef, CanvasProps>(function Canvas(
       const scaleY = canvas.height / rect.height;
 
       return {
-        x: ((e.clientX - rect.left) * scaleX - offset.x) / (zoom / 100),
-        y: ((e.clientY - rect.top) * scaleY - offset.y) / (zoom / 100),
+        x: ((clientX - rect.left) * scaleX - offset.x) / (zoom / 100),
+        y: ((clientY - rect.top) * scaleY - offset.y) / (zoom / 100),
       };
     },
     [offset, zoom]
   );
+
+  // Get point from mouse event
+  const getMousePoint = useCallback(
+    (e: React.MouseEvent): Point => getCanvasPoint(e.clientX, e.clientY),
+    [getCanvasPoint]
+  );
+
+  // Get point from touch event (first touch)
+  const getTouchPoint = useCallback(
+    (e: React.TouchEvent): Point => {
+      const touch = e.touches[0];
+      if (!touch) return { x: 0, y: 0 };
+      return getCanvasPoint(touch.clientX, touch.clientY);
+    },
+    [getCanvasPoint]
+  );
+
+  // Calculate distance between two touch points (for pinch)
+  const getTouchDistance = (touch1: React.Touch, touch2: React.Touch): number => {
+    const dx = touch2.clientX - touch1.clientX;
+    const dy = touch2.clientY - touch1.clientY;
+    return Math.sqrt(dx * dx + dy * dy);
+  };
+
+  // Get center point between two touches
+  const getTouchCenter = (
+    touch1: React.Touch,
+    touch2: React.Touch
+  ): { clientX: number; clientY: number } => {
+    return {
+      clientX: (touch1.clientX + touch2.clientX) / 2,
+      clientY: (touch1.clientY + touch2.clientY) / 2,
+    };
+  };
 
   // Draw grid background
   const drawGrid = useCallback(
@@ -627,14 +667,12 @@ export const Canvas = forwardRef<CanvasRef, CanvasProps>(function Canvas(
     ctx.restore();
   }, [elements, currentElement, offset, zoom, selectedId, drawGrid, drawElement]);
 
-  // Mouse down handler
-  const handleMouseDown = (e: React.MouseEvent) => {
-    const point = getCanvasPoint(e);
-
+  // Shared pointer down logic (used by both mouse and touch)
+  const handlePointerDown = (point: Point, clientX: number, clientY: number) => {
     // Pan is always allowed (even in readOnly mode)
     if (activeTool === "pan") {
       setIsPanning(true);
-      setPanStart({ x: e.clientX - offset.x, y: e.clientY - offset.y });
+      setPanStart({ x: clientX - offset.x, y: clientY - offset.y });
       return;
     }
 
@@ -671,14 +709,14 @@ export const Canvas = forwardRef<CanvasRef, CanvasProps>(function Canvas(
     }
 
     if (activeTool === "text" || activeTool === "sticky") {
-      setTextInput({ x: e.clientX, y: e.clientY, visible: true });
+      setTextInput({ x: clientX, y: clientY, visible: true });
       setTextValue("");
       setTimeout(() => textInputRef.current?.focus(), 0);
       return;
     }
 
     if (activeTool === "card") {
-      setCardInput({ x: e.clientX, y: e.clientY, visible: true });
+      setCardInput({ x: clientX, y: clientY, visible: true });
       setCardHeader("");
       setCardDescription("");
       setTimeout(() => cardHeaderRef.current?.focus(), 0);
@@ -701,25 +739,29 @@ export const Canvas = forwardRef<CanvasRef, CanvasProps>(function Canvas(
     setCurrentElement(newElement);
   };
 
-  // Mouse move handler
-  const handleMouseMove = (e: React.MouseEvent) => {
+  // Mouse down handler
+  const handleMouseDown = (e: React.MouseEvent) => {
+    const point = getMousePoint(e);
+    handlePointerDown(point, e.clientX, e.clientY);
+  };
+
+  // Shared pointer move logic (used by both mouse and touch)
+  const handlePointerMove = (point: Point, clientX: number, clientY: number) => {
     // Broadcast cursor position for live cursors
     if (onCursorMove) {
-      const point = getCanvasPoint(e);
       onCursorMove(point.x, point.y);
     }
 
     if (isPanning) {
       setOffset({
-        x: e.clientX - panStart.x,
-        y: e.clientY - panStart.y,
+        x: clientX - panStart.x,
+        y: clientY - panStart.y,
       });
       return;
     }
 
     // Handle dragging selected element
     if (isDragging && selectedId) {
-      const point = getCanvasPoint(e);
       const newX = point.x - dragOffset.x;
       const newY = point.y - dragOffset.y;
 
@@ -768,8 +810,6 @@ export const Canvas = forwardRef<CanvasRef, CanvasProps>(function Canvas(
 
     if (!isDrawing || !currentElement) return;
 
-    const point = getCanvasPoint(e);
-
     setCurrentElement((prev) => {
       if (!prev) return null;
 
@@ -801,8 +841,14 @@ export const Canvas = forwardRef<CanvasRef, CanvasProps>(function Canvas(
     });
   };
 
-  // Mouse up handler
-  const handleMouseUp = () => {
+  // Mouse move handler
+  const handleMouseMove = (e: React.MouseEvent) => {
+    const point = getMousePoint(e);
+    handlePointerMove(point, e.clientX, e.clientY);
+  };
+
+  // Shared pointer up logic
+  const handlePointerUp = () => {
     if (isPanning) {
       setIsPanning(false);
       return;
@@ -830,6 +876,109 @@ export const Canvas = forwardRef<CanvasRef, CanvasProps>(function Canvas(
     }
 
     setIsDrawing(false);
+  };
+
+  // Mouse up handler
+  const handleMouseUp = () => {
+    handlePointerUp();
+  };
+
+  // Touch start handler
+  const handleTouchStart = (e: React.TouchEvent) => {
+    // Prevent default to stop scrolling on canvas
+    e.preventDefault();
+
+    const touches = e.touches;
+
+    // Two finger gesture - pinch to zoom or pan
+    if (touches.length === 2) {
+      const touch1 = touches[0];
+      const touch2 = touches[1];
+      if (touch1 && touch2) {
+        setLastPinchDistance(getTouchDistance(touch1, touch2));
+        const center = getTouchCenter(touch1, touch2);
+        // Calculate and store the world point at the pinch center (fixed for entire gesture)
+        const worldPoint = getCanvasPoint(center.clientX, center.clientY);
+        setPinchWorldCenter(worldPoint);
+      }
+      return;
+    }
+
+    // Single finger - treat as regular pointer
+    if (touches.length === 1) {
+      const touch = touches[0];
+      if (touch) {
+        const point = getTouchPoint(e);
+        handlePointerDown(point, touch.clientX, touch.clientY);
+      }
+    }
+  };
+
+  // Touch move handler
+  const handleTouchMove = (e: React.TouchEvent) => {
+    e.preventDefault();
+
+    const touches = e.touches;
+
+    // Two finger gesture - handle pinch zoom and pan
+    if (touches.length === 2) {
+      const touch1 = touches[0];
+      const touch2 = touches[1];
+      const canvas = canvasRef.current;
+      if (touch1 && touch2 && canvas) {
+        const currentDistance = getTouchDistance(touch1, touch2);
+        const center = getTouchCenter(touch1, touch2);
+
+        // Handle pinch zoom
+        if (lastPinchDistance !== null && pinchWorldCenter) {
+          const scale = currentDistance / lastPinchDistance;
+          const newZoom = Math.min(400, Math.max(25, zoom * scale));
+
+          // Get canvas position and scale factors (must match getCanvasPoint)
+          const rect = canvas.getBoundingClientRect();
+          const scaleX = canvas.width / rect.width;
+          const scaleY = canvas.height / rect.height;
+
+          // Convert screen center to canvas-relative coordinates
+          const canvasX = (center.clientX - rect.left) * scaleX;
+          const canvasY = (center.clientY - rect.top) * scaleY;
+
+          // Calculate new offset to keep the fixed world point under the current screen center
+          // Inverse of: worldX = (canvasX - offset.x) / (zoom / 100)
+          // Therefore: offset.x = canvasX - worldX * (zoom / 100)
+          const newOffsetX = canvasX - pinchWorldCenter.x * (newZoom / 100);
+          const newOffsetY = canvasY - pinchWorldCenter.y * (newZoom / 100);
+          setOffset({ x: newOffsetX, y: newOffsetY });
+
+          setLastPinchDistance(currentDistance);
+          onZoomChange(Math.round(newZoom));
+        }
+      }
+      return;
+    }
+
+    // Single finger - treat as regular pointer move
+    if (touches.length === 1) {
+      const touch = touches[0];
+      if (touch) {
+        const point = getTouchPoint(e);
+        handlePointerMove(point, touch.clientX, touch.clientY);
+      }
+    }
+  };
+
+  // Touch end handler
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    // Reset pinch state
+    if (e.touches.length < 2) {
+      setLastPinchDistance(null);
+      setPinchWorldCenter(null);
+    }
+
+    // If no more touches, end the interaction
+    if (e.touches.length === 0) {
+      handlePointerUp();
+    }
   };
 
   // Find element at a specific point
@@ -1024,13 +1173,17 @@ export const Canvas = forwardRef<CanvasRef, CanvasProps>(function Canvas(
     <div ref={containerRef} className="relative h-full w-full overflow-hidden">
       <canvas
         ref={canvasRef}
-        className="h-full w-full"
+        className="h-full w-full touch-none"
         style={{ cursor: getCursor() }}
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseUp}
         onWheel={handleWheel}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        onTouchCancel={handleTouchEnd}
       />
 
       {/* Text input overlay */}

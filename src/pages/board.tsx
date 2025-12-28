@@ -323,8 +323,8 @@ export function BoardPage() {
 
       {/* View-only banner for viewers */}
       {!canEdit && (
-        <div className="absolute bottom-4 left-1/2 z-20 -translate-x-1/2 rounded-full bg-[var(--color-surface-elevated)] px-4 py-2 text-sm text-[var(--color-text-muted)] shadow-lg">
-          👁️ View only — you can pan and zoom but not edit
+        <div className="absolute bottom-20 left-1/2 z-20 -translate-x-1/2 whitespace-nowrap rounded-full bg-[var(--color-surface-elevated)] px-4 py-2 text-center text-xs text-[var(--color-text-muted)] shadow-lg sm:bottom-4 sm:text-sm">
+          👁️ View only — pan & zoom enabled
         </div>
       )}
 
