@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import type { Board } from "@/types/board";
 import { formatRelativeTime } from "@/lib/format";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const cardBackgrounds = [
   // 1. Aurora - Purple/teal gradient with floating orbs
@@ -212,6 +213,7 @@ export function BoardCard({
   onManageMembers,
 }: BoardCardProps) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const isMobile = useIsMobile();
 
   // Get consistent background based on board ID
   const bgStyle = useMemo(() => {
@@ -234,9 +236,12 @@ export function BoardCard({
           className="relative aspect-[16/10] overflow-hidden rounded-t-xl"
           style={{ background: bgStyle?.background }}
         >
-          {/* Render decorative elements */}
+          {/* Render decorative elements - scale down on mobile */}
           {bgStyle?.elements.map((el: BackgroundElement, i: number) => {
+            const scale = isMobile ? 0.6 : 1;
             if (el.type === "circle") {
+              const scaledSize = (el.size ?? 50) * scale;
+              const scaledBlur = (el.blur ?? 20) * scale;
               return (
                 <div
                   key={i}
@@ -244,16 +249,17 @@ export function BoardCard({
                   style={{
                     left: el.x,
                     top: el.y,
-                    width: el.size,
-                    height: el.size,
+                    width: scaledSize,
+                    height: scaledSize,
                     backgroundColor: el.color,
-                    filter: `blur(${el.blur}px)`,
+                    filter: `blur(${scaledBlur}px)`,
                     transform: "translate(-50%, -50%)",
                   }}
                 />
               );
             }
             if (el.type === "grid") {
+              const gridSize = isMobile ? 16 : 24;
               return (
                 <div
                   key={i}
@@ -263,7 +269,7 @@ export function BoardCard({
                       linear-gradient(${el.color} 1px, transparent 1px),
                       linear-gradient(90deg, ${el.color} 1px, transparent 1px)
                     `,
-                    backgroundSize: "24px 24px",
+                    backgroundSize: `${gridSize}px ${gridSize}px`,
                   }}
                 />
               );
@@ -272,9 +278,10 @@ export function BoardCard({
               return (
                 <div
                   key={i}
-                  className="absolute left-0 right-0 h-8"
+                  className="absolute left-0 right-0"
                   style={{
                     top: el.y,
+                    height: isMobile ? 5 : 8,
                     background: `linear-gradient(0deg, ${el.color} 0%, transparent 100%)`,
                   }}
                 />
@@ -291,7 +298,7 @@ export function BoardCard({
                 linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
                 linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px)
               `,
-              backgroundSize: "20px 20px",
+              backgroundSize: isMobile ? "14px 14px" : "20px 20px",
             }}
           />
 
@@ -301,11 +308,11 @@ export function BoardCard({
       </Link>
 
       {/* Info */}
-      <div className="p-4">
+      <div className="p-3 sm:p-4">
         <div className="mb-2 flex items-start justify-between gap-2">
           <Link
             to={`/board/${board.id}`}
-            className="font-semibold text-[var(--color-text)] hover:text-[var(--color-accent)]"
+            className="line-clamp-2 text-sm font-semibold text-[var(--color-text)] hover:text-[var(--color-accent)] sm:text-base"
           >
             {board.name}
           </Link>
@@ -314,9 +321,11 @@ export function BoardCard({
           <div className="relative">
             <button
               onClick={() => setMenuOpen(!menuOpen)}
-              className="rounded-lg p-1 text-[var(--color-text-muted)] opacity-0 transition-all hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text)] group-hover:opacity-100"
+              className={`shrink-0 rounded-lg p-1.5 text-[var(--color-text-muted)] transition-all hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text)] sm:p-1 ${
+                isMobile ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+              }`}
             >
-              <MoreHorizontal className="h-4 w-4" />
+              <MoreHorizontal className="h-5 w-5 sm:h-4 sm:w-4" />
             </button>
 
             {menuOpen && (
@@ -415,9 +424,9 @@ export function BoardCard({
         </div>
 
         {/* Meta info */}
-        <div className="flex items-center gap-3 text-xs text-[var(--color-text-muted)]">
+        <div className="flex flex-wrap items-center gap-2 text-[10px] text-[var(--color-text-muted)] sm:gap-3 sm:text-xs">
           {!board.isOwned && board.ownerName && (
-            <span className="flex items-center gap-1">by {board.ownerName}</span>
+            <span className="flex items-center gap-1 truncate">by {board.ownerName}</span>
           )}
           <span className="flex items-center gap-1">
             <Clock className="h-3 w-3" />

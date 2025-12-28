@@ -152,24 +152,24 @@ export function DashboardPage() {
     <div className="min-h-[calc(100vh-3.5rem)] bg-[var(--color-surface)]">
       <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
         {/* Header */}
-        <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-4">
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-[var(--color-accent)] to-[var(--color-tertiary)] text-sm font-semibold text-white">
+        <div className="mb-6 flex flex-col gap-4 sm:mb-8 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-3 sm:gap-4">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[var(--color-accent)] to-[var(--color-tertiary)] text-sm font-semibold text-white sm:h-12 sm:w-12">
               {getInitials(user?.name, user?.email)}
             </div>
-            <div>
-              <h1 className="text-xl font-bold text-[var(--color-text)]">
-                Welcome back, {user?.name?.split(" ")[0] ?? "there"}!
+            <div className="min-w-0">
+              <h1 className="truncate text-lg font-bold text-[var(--color-text)] sm:text-xl">
+                Welcome, {user?.name?.split(" ")[0] ?? "there"}!
               </h1>
-              <p className="text-sm text-[var(--color-text-muted)]">
-                {totalOwned} board{totalOwned !== 1 ? "s" : ""} • {totalShared} shared with you
+              <p className="text-xs text-[var(--color-text-muted)] sm:text-sm">
+                {totalOwned} board{totalOwned !== 1 ? "s" : ""} • {totalShared} shared
               </p>
             </div>
           </div>
 
           <button
             onClick={() => setCreateModalOpen(true)}
-            className="inline-flex items-center justify-center gap-2 rounded-lg bg-[var(--color-accent)] px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-[var(--color-accent-hover)]"
+            className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-[var(--color-accent)] px-5 py-3 text-sm font-medium text-white transition-colors hover:bg-[var(--color-accent-hover)] sm:w-auto sm:py-2.5"
           >
             <Plus className="h-4 w-4" />
             New Board
@@ -187,12 +187,12 @@ export function DashboardPage() {
           <>
             {/* Pinned Section */}
             {pinnedBoards.length > 0 && (
-              <section className="mb-10">
-                <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-[var(--color-text)]">
+              <section className="mb-8 sm:mb-10">
+                <h2 className="mb-3 flex items-center gap-2 text-base font-semibold text-[var(--color-text)] sm:mb-4 sm:text-lg">
                   <Pin className="h-4 w-4 text-[var(--color-accent)]" />
                   Pinned
                 </h2>
-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3">
                   {pinnedBoards.map((board) => (
                     <BoardCard
                       key={board.id}
@@ -210,15 +210,15 @@ export function DashboardPage() {
             )}
 
             {/* My Boards Section */}
-            <section className="mb-10">
-              <h2 className="mb-4 text-lg font-semibold text-[var(--color-text)]">My Boards</h2>
+            <section className="mb-8 sm:mb-10">
+              <h2 className="mb-3 text-base font-semibold text-[var(--color-text)] sm:mb-4 sm:text-lg">My Boards</h2>
 
               {totalOwned > 0 ? (
-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3">
                   {/* New Board Card */}
                   <button
                     onClick={() => setCreateModalOpen(true)}
-                    className="bg-[var(--color-surface-elevated)]/50 flex aspect-[16/10] flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-[var(--color-border)] transition-all hover:border-[var(--color-accent)] hover:bg-[var(--color-accent-muted)]"
+                    className="flex aspect-[16/10] flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-[var(--color-border)] bg-[var(--color-surface-elevated)]/50 transition-all hover:border-[var(--color-accent)] hover:bg-[var(--color-accent-muted)]"
                   >
                     <div className="rounded-full bg-[var(--color-accent-muted)] p-3">
                       <Plus className="h-6 w-6 text-[var(--color-accent)]" />
@@ -261,12 +261,12 @@ export function DashboardPage() {
 
             {/* Shared with Me Section */}
             <section>
-              <h2 className="mb-4 text-lg font-semibold text-[var(--color-text)]">
+              <h2 className="mb-3 text-base font-semibold text-[var(--color-text)] sm:mb-4 sm:text-lg">
                 Shared with Me
               </h2>
 
               {totalShared > 0 ? (
-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3">
                   {sharedBoards.map((board) => (
                     <BoardCard
                       key={board.id}

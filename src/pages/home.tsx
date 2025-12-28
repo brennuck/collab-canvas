@@ -90,39 +90,43 @@ function CanvasPreview() {
       <div className="absolute -inset-4 rounded-3xl bg-gradient-to-r from-[var(--color-accent)] via-[var(--color-tertiary)] to-[var(--color-secondary)] opacity-20 blur-3xl" />
 
       {/* Main canvas container */}
-      <div className="relative rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-elevated)] p-1 shadow-2xl">
+      <div className="relative rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-elevated)] p-0.5 shadow-2xl sm:rounded-2xl sm:p-1">
         {/* Browser chrome */}
-        <div className="flex items-center gap-2 border-b border-[var(--color-border)] px-4 py-3">
-          <div className="flex gap-1.5">
-            <div className="h-3 w-3 rounded-full bg-red-500/80" />
-            <div className="h-3 w-3 rounded-full bg-yellow-500/80" />
-            <div className="h-3 w-3 rounded-full bg-green-500/80" />
+        <div className="flex items-center gap-1.5 border-b border-[var(--color-border)] px-2 py-2 sm:gap-2 sm:px-4 sm:py-3">
+          <div className="flex gap-1 sm:gap-1.5">
+            <div className="h-2 w-2 rounded-full bg-red-500/80 sm:h-3 sm:w-3" />
+            <div className="h-2 w-2 rounded-full bg-yellow-500/80 sm:h-3 sm:w-3" />
+            <div className="h-2 w-2 rounded-full bg-green-500/80 sm:h-3 sm:w-3" />
           </div>
-          <div className="ml-4 flex-1 rounded-md bg-[var(--color-surface)] px-3 py-1.5 text-xs text-[var(--color-text-muted)]">
+          <div className="ml-2 flex-1 truncate rounded bg-[var(--color-surface)] px-2 py-1 text-[10px] text-[var(--color-text-muted)] sm:ml-4 sm:rounded-md sm:px-3 sm:py-1.5 sm:text-xs">
             collabcanvas.app/board/team-brainstorm
           </div>
         </div>
 
         {/* Canvas area */}
-        <div className="bg-grid relative aspect-[16/10] overflow-hidden rounded-b-xl bg-[#0d0d14]">
+        <div className="bg-grid relative aspect-[16/10] overflow-hidden rounded-b-lg bg-[#0d0d14] sm:rounded-b-xl">
           {/* Decorative elements on canvas */}
 
           {/* Sticky note 1 */}
-          <div className="animate-float absolute left-[8%] top-[15%] w-32 rotate-[-3deg] rounded-lg bg-[#fbbf24] p-3 shadow-lg">
-            <p className="text-xs font-medium text-gray-900">User Research</p>
-            <p className="mt-1 text-[10px] text-gray-700">Interview findings</p>
+          <div className="animate-float absolute left-[8%] top-[15%] w-16 rotate-[-3deg] rounded bg-[#fbbf24] p-1.5 shadow-lg sm:w-32 sm:rounded-lg sm:p-3">
+            <p className="text-[8px] font-medium text-gray-900 sm:text-xs">User Research</p>
+            <p className="mt-0.5 hidden text-[10px] text-gray-700 sm:mt-1 sm:block">
+              Interview findings
+            </p>
           </div>
 
           {/* Sticky note 2 */}
-          <div className="animate-float-delayed absolute left-[25%] top-[25%] w-28 rotate-[2deg] rounded-lg bg-[#f472b6] p-3 shadow-lg">
-            <p className="text-xs font-medium text-gray-900">Pain Points</p>
-            <p className="mt-1 text-[10px] text-gray-700">Key issues</p>
+          <div className="animate-float-delayed absolute left-[25%] top-[25%] w-14 rotate-[2deg] rounded bg-[#f472b6] p-1.5 shadow-lg sm:w-28 sm:rounded-lg sm:p-3">
+            <p className="text-[8px] font-medium text-gray-900 sm:text-xs">Pain Points</p>
+            <p className="mt-0.5 hidden text-[10px] text-gray-700 sm:mt-1 sm:block">Key issues</p>
           </div>
 
           {/* Sticky note 3 */}
-          <div className="animate-float-slow absolute right-[15%] top-[20%] w-32 rotate-[4deg] rounded-lg bg-[#4ade80] p-3 shadow-lg">
-            <p className="text-xs font-medium text-gray-900">Solutions</p>
-            <p className="mt-1 text-[10px] text-gray-700">Brainstorm ideas</p>
+          <div className="animate-float-slow absolute right-[15%] top-[20%] w-16 rotate-[4deg] rounded bg-[#4ade80] p-1.5 shadow-lg sm:w-32 sm:rounded-lg sm:p-3">
+            <p className="text-[8px] font-medium text-gray-900 sm:text-xs">Solutions</p>
+            <p className="mt-0.5 hidden text-[10px] text-gray-700 sm:mt-1 sm:block">
+              Brainstorm ideas
+            </p>
           </div>
 
           {/* Drawing path */}
@@ -145,12 +149,14 @@ function CanvasPreview() {
           </svg>
 
           {/* Text box */}
-          <div className="animate-float-delayed absolute bottom-[25%] left-[10%] rounded-lg border-2 border-dashed border-[var(--color-accent)] bg-[var(--color-accent-muted)] px-4 py-2">
-            <p className="text-sm font-medium text-[var(--color-accent)]">Project Roadmap</p>
+          <div className="animate-float-delayed absolute bottom-[25%] left-[10%] rounded border-2 border-dashed border-[var(--color-accent)] bg-[var(--color-accent-muted)] px-2 py-1 sm:rounded-lg sm:px-4 sm:py-2">
+            <p className="text-[10px] font-medium text-[var(--color-accent)] sm:text-sm">
+              Project Roadmap
+            </p>
           </div>
 
-          {/* Live cursors */}
-          <div className="absolute right-[30%] top-[40%]">
+          {/* Live cursors - hidden on very small screens */}
+          <div className="absolute right-[30%] top-[40%] hidden sm:block">
             <div className="flex items-center gap-1">
               <svg
                 width="16"
@@ -167,7 +173,7 @@ function CanvasPreview() {
             </div>
           </div>
 
-          <div className="absolute bottom-[35%] right-[20%]">
+          <div className="absolute bottom-[35%] right-[20%] hidden sm:block">
             <div className="flex items-center gap-1">
               <svg
                 width="16"
@@ -184,24 +190,38 @@ function CanvasPreview() {
             </div>
           </div>
 
-          {/* AI suggestion popup */}
-          <div className="animate-pulse-glow absolute bottom-[15%] right-[8%] rounded-xl border border-[var(--color-accent)] bg-[var(--color-surface-elevated)] p-3 shadow-xl">
-            <div className="mb-2 flex items-center justify-start">
-              <div className="inline-flex items-center gap-1 rounded-full border border-amber-500/30 bg-amber-500/10 px-1.5 py-0.5">
+          {/* Simplified cursors for mobile */}
+          <div className="absolute right-[25%] top-[45%] sm:hidden">
+            <svg width="12" height="15" viewBox="0 0 16 20" fill="none" className="drop-shadow-lg">
+              <path d="M0 0L16 12L8 12L4 20L0 0Z" fill="var(--color-secondary)" />
+            </svg>
+          </div>
+          <div className="absolute bottom-[30%] right-[18%] sm:hidden">
+            <svg width="12" height="15" viewBox="0 0 16 20" fill="none" className="drop-shadow-lg">
+              <path d="M0 0L16 12L8 12L4 20L0 0Z" fill="var(--color-tertiary)" />
+            </svg>
+          </div>
+
+          {/* AI suggestion popup - scaled for mobile */}
+          <div className="animate-pulse-glow absolute bottom-[12%] right-[5%] rounded-lg border border-[var(--color-accent)] bg-[var(--color-surface-elevated)] p-2 shadow-xl sm:bottom-[15%] sm:right-[8%] sm:rounded-xl sm:p-3">
+            <div className="mb-1 flex items-center justify-start sm:mb-2">
+              <div className="inline-flex items-center gap-0.5 rounded-full border border-amber-500/30 bg-amber-500/10 px-1 py-0.5 sm:gap-1 sm:px-1.5">
                 <span className="relative flex h-1 w-1">
                   <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-400 opacity-75"></span>
                   <span className="relative inline-flex h-1 w-1 rounded-full bg-amber-500"></span>
                 </span>
-                <span className="text-[9px] font-medium text-amber-500">Coming soon</span>
+                <span className="text-[7px] font-medium text-amber-500 sm:text-[9px]">
+                  Coming soon
+                </span>
               </div>
             </div>
-            <div className="flex items-center gap-2">
-              <Sparkles className="h-4 w-4 text-[var(--color-accent)]" />
-              <span className="text-xs font-semibold text-[var(--color-accent)]">
+            <div className="flex items-center gap-1 sm:gap-2">
+              <Sparkles className="h-3 w-3 text-[var(--color-accent)] sm:h-4 sm:w-4" />
+              <span className="text-[10px] font-semibold text-[var(--color-accent)] sm:text-xs">
                 AI Suggestion
               </span>
             </div>
-            <p className="mt-1.5 max-w-[140px] text-[10px] text-[var(--color-text-muted)]">
+            <p className="mt-1 hidden max-w-[140px] text-[10px] text-[var(--color-text-muted)] sm:mt-1.5 sm:block">
               Group these notes into themes?
             </p>
           </div>

@@ -309,7 +309,7 @@ export const Canvas = forwardRef<CanvasRef, CanvasProps>(function Canvas(
 
   // Get point from touch event (first touch)
   const getTouchPoint = useCallback(
-    (e: React.TouchEvent): Point => {
+    (e: TouchEvent): Point => {
       const touch = e.touches[0];
       if (!touch) return { x: 0, y: 0 };
       return getCanvasPoint(touch.clientX, touch.clientY);
@@ -318,17 +318,14 @@ export const Canvas = forwardRef<CanvasRef, CanvasProps>(function Canvas(
   );
 
   // Calculate distance between two touch points (for pinch)
-  const getTouchDistance = (touch1: React.Touch, touch2: React.Touch): number => {
+  const getTouchDistance = (touch1: Touch, touch2: Touch): number => {
     const dx = touch2.clientX - touch1.clientX;
     const dy = touch2.clientY - touch1.clientY;
     return Math.sqrt(dx * dx + dy * dy);
   };
 
   // Get center point between two touches
-  const getTouchCenter = (
-    touch1: React.Touch,
-    touch2: React.Touch
-  ): { clientX: number; clientY: number } => {
+  const getTouchCenter = (touch1: Touch, touch2: Touch): { clientX: number; clientY: number } => {
     return {
       clientX: (touch1.clientX + touch2.clientX) / 2,
       clientY: (touch1.clientY + touch2.clientY) / 2,
@@ -667,77 +664,136 @@ export const Canvas = forwardRef<CanvasRef, CanvasProps>(function Canvas(
     ctx.restore();
   }, [elements, currentElement, offset, zoom, selectedId, drawGrid, drawElement]);
 
+  // Find element at a specific point
+  const findElementAtPoint = useCallback(
+    (point: Point): CanvasElement | undefined => {
+      // Search in reverse order (top elements first)
+      for (let i = elements.length - 1; i >= 0; i--) {
+        const el = elements[i];
+        if (!el) continue;
+
+        if (el.type === "pencil" && el.points) {
+          const minX = Math.min(...el.points.map((p) => p.x));
+          const maxX = Math.max(...el.points.map((p) => p.x));
+          const minY = Math.min(...el.points.map((p) => p.y));
+          const maxY = Math.max(...el.points.map((p) => p.y));
+
+          if (point.x >= minX && point.x <= maxX && point.y >= minY && point.y <= maxY) {
+            return el;
+          }
+        } else if (el.type === "line") {
+          // Simple bounding box check for lines
+          const minX = Math.min(el.x, el.endX ?? el.x) - 5;
+          const maxX = Math.max(el.x, el.endX ?? el.x) + 5;
+          const minY = Math.min(el.y, el.endY ?? el.y) - 5;
+          const maxY = Math.max(el.y, el.endY ?? el.y) + 5;
+
+          if (point.x >= minX && point.x <= maxX && point.y >= minY && point.y <= maxY) {
+            return el;
+          }
+        } else {
+          const width = el.width ?? 150;
+          const height = el.height ?? 150;
+
+          if (
+            point.x >= el.x &&
+            point.x <= el.x + width &&
+            point.y >= el.y &&
+            point.y <= el.y + height
+          ) {
+            return el;
+          }
+        }
+      }
+      return undefined;
+    },
+    [elements]
+  );
+
   // Shared pointer down logic (used by both mouse and touch)
-  const handlePointerDown = (point: Point, clientX: number, clientY: number) => {
-    // Pan is always allowed (even in readOnly mode)
-    if (activeTool === "pan") {
-      setIsPanning(true);
-      setPanStart({ x: clientX - offset.x, y: clientY - offset.y });
-      return;
-    }
-
-    // Block all other interactions in readOnly mode
-    if (readOnly) return;
-
-    if (activeTool === "select") {
-      // Find element at click position
-      const clickedElement = findElementAtPoint(point);
-      setSelectedId(clickedElement?.id ?? null);
-
-      // Start dragging if we clicked on an element
-      if (clickedElement) {
-        setIsDragging(true);
-        // Calculate offset from element origin to click point
-        setDragOffset({
-          x: point.x - clickedElement.x,
-          y: point.y - clickedElement.y,
-        });
+  const handlePointerDown = useCallback(
+    (point: Point, clientX: number, clientY: number) => {
+      // Pan is always allowed (even in readOnly mode)
+      if (activeTool === "pan") {
+        setIsPanning(true);
+        setPanStart({ x: clientX - offset.x, y: clientY - offset.y });
+        return;
       }
-      return;
-    }
 
-    if (activeTool === "eraser") {
-      const clickedElement = findElementAtPoint(point);
-      if (clickedElement) {
-        const newElements = elements.filter((el) => el.id !== clickedElement.id);
-        setElements(newElements);
-        pushToHistory(newElements);
-        // Broadcast delete to other users
-        onElementDelete?.(clickedElement.id);
+      // Block all other interactions in readOnly mode
+      if (readOnly) return;
+
+      if (activeTool === "select") {
+        // Find element at click position
+        const clickedElement = findElementAtPoint(point);
+        setSelectedId(clickedElement?.id ?? null);
+
+        // Start dragging if we clicked on an element
+        if (clickedElement) {
+          setIsDragging(true);
+          // Calculate offset from element origin to click point
+          setDragOffset({
+            x: point.x - clickedElement.x,
+            y: point.y - clickedElement.y,
+          });
+        }
+        return;
       }
-      return;
-    }
 
-    if (activeTool === "text" || activeTool === "sticky") {
-      setTextInput({ x: clientX, y: clientY, visible: true });
-      setTextValue("");
-      setTimeout(() => textInputRef.current?.focus(), 0);
-      return;
-    }
+      if (activeTool === "eraser") {
+        const clickedElement = findElementAtPoint(point);
+        if (clickedElement) {
+          const newElements = elements.filter((el) => el.id !== clickedElement.id);
+          setElements(newElements);
+          pushToHistory(newElements);
+          // Broadcast delete to other users
+          onElementDelete?.(clickedElement.id);
+        }
+        return;
+      }
 
-    if (activeTool === "card") {
-      setCardInput({ x: clientX, y: clientY, visible: true });
-      setCardHeader("");
-      setCardDescription("");
-      setTimeout(() => cardHeaderRef.current?.focus(), 0);
-      return;
-    }
+      if (activeTool === "text" || activeTool === "sticky") {
+        setTextInput({ x: clientX, y: clientY, visible: true });
+        setTextValue("");
+        setTimeout(() => textInputRef.current?.focus(), 0);
+        return;
+      }
 
-    setIsDrawing(true);
-    setSelectedId(null);
+      if (activeTool === "card") {
+        setCardInput({ x: clientX, y: clientY, visible: true });
+        setCardHeader("");
+        setCardDescription("");
+        setTimeout(() => cardHeaderRef.current?.focus(), 0);
+        return;
+      }
 
-    const newElement: CanvasElement = {
-      id: generateId(),
-      type: activeTool as CanvasElement["type"],
-      x: point.x,
-      y: point.y,
+      setIsDrawing(true);
+      setSelectedId(null);
+
+      const newElement: CanvasElement = {
+        id: generateId(),
+        type: activeTool as CanvasElement["type"],
+        x: point.x,
+        y: point.y,
+        color,
+        strokeWidth,
+        points: activeTool === "pencil" ? [point] : undefined,
+      };
+
+      setCurrentElement(newElement);
+    },
+    [
+      activeTool,
+      offset,
+      readOnly,
+      findElementAtPoint,
+      elements,
+      pushToHistory,
+      onElementDelete,
       color,
       strokeWidth,
-      points: activeTool === "pencil" ? [point] : undefined,
-    };
-
-    setCurrentElement(newElement);
-  };
+    ]
+  );
 
   // Mouse down handler
   const handleMouseDown = (e: React.MouseEvent) => {
@@ -746,100 +802,112 @@ export const Canvas = forwardRef<CanvasRef, CanvasProps>(function Canvas(
   };
 
   // Shared pointer move logic (used by both mouse and touch)
-  const handlePointerMove = (point: Point, clientX: number, clientY: number) => {
-    // Broadcast cursor position for live cursors
-    if (onCursorMove) {
-      onCursorMove(point.x, point.y);
-    }
-
-    if (isPanning) {
-      setOffset({
-        x: clientX - panStart.x,
-        y: clientY - panStart.y,
-      });
-      return;
-    }
-
-    // Handle dragging selected element
-    if (isDragging && selectedId) {
-      const newX = point.x - dragOffset.x;
-      const newY = point.y - dragOffset.y;
-
-      setElements((prev) =>
-        prev.map((el) => {
-          if (el.id !== selectedId) return el;
-
-          // Calculate the delta for moving
-          const deltaX = newX - el.x;
-          const deltaY = newY - el.y;
-
-          // For pencil, we need to move all points
-          if (el.type === "pencil" && el.points) {
-            return {
-              ...el,
-              x: newX,
-              y: newY,
-              points: el.points.map((p) => ({
-                x: p.x + deltaX,
-                y: p.y + deltaY,
-              })),
-            };
-          }
-
-          // For line, move both start and end points
-          if (el.type === "line") {
-            return {
-              ...el,
-              x: newX,
-              y: newY,
-              endX: (el.endX ?? el.x) + deltaX,
-              endY: (el.endY ?? el.y) + deltaY,
-            };
-          }
-
-          // For other elements, just update x and y
-          return {
-            ...el,
-            x: newX,
-            y: newY,
-          };
-        })
-      );
-      return;
-    }
-
-    if (!isDrawing || !currentElement) return;
-
-    setCurrentElement((prev) => {
-      if (!prev) return null;
-
-      switch (prev.type) {
-        case "pencil":
-          return {
-            ...prev,
-            points: [...(prev.points ?? []), point],
-          };
-
-        case "line":
-          return {
-            ...prev,
-            endX: point.x,
-            endY: point.y,
-          };
-
-        case "rectangle":
-        case "circle":
-          return {
-            ...prev,
-            width: point.x - prev.x,
-            height: point.y - prev.y,
-          };
-
-        default:
-          return prev;
+  const handlePointerMove = useCallback(
+    (point: Point, clientX: number, clientY: number) => {
+      // Broadcast cursor position for live cursors
+      if (onCursorMove) {
+        onCursorMove(point.x, point.y);
       }
-    });
-  };
+
+      if (isPanning) {
+        setOffset({
+          x: clientX - panStart.x,
+          y: clientY - panStart.y,
+        });
+        return;
+      }
+
+      // Handle dragging selected element
+      if (isDragging && selectedId) {
+        const newX = point.x - dragOffset.x;
+        const newY = point.y - dragOffset.y;
+
+        setElements((prev) =>
+          prev.map((el) => {
+            if (el.id !== selectedId) return el;
+
+            // Calculate the delta for moving
+            const deltaX = newX - el.x;
+            const deltaY = newY - el.y;
+
+            // For pencil, we need to move all points
+            if (el.type === "pencil" && el.points) {
+              return {
+                ...el,
+                x: newX,
+                y: newY,
+                points: el.points.map((p) => ({
+                  x: p.x + deltaX,
+                  y: p.y + deltaY,
+                })),
+              };
+            }
+
+            // For line, move both start and end points
+            if (el.type === "line") {
+              return {
+                ...el,
+                x: newX,
+                y: newY,
+                endX: (el.endX ?? el.x) + deltaX,
+                endY: (el.endY ?? el.y) + deltaY,
+              };
+            }
+
+            // For other elements, just update x and y
+            return {
+              ...el,
+              x: newX,
+              y: newY,
+            };
+          })
+        );
+        return;
+      }
+
+      if (!isDrawing || !currentElement) return;
+
+      setCurrentElement((prev) => {
+        if (!prev) return null;
+
+        switch (prev.type) {
+          case "pencil":
+            return {
+              ...prev,
+              points: [...(prev.points ?? []), point],
+            };
+
+          case "line":
+            return {
+              ...prev,
+              endX: point.x,
+              endY: point.y,
+            };
+
+          case "rectangle":
+          case "circle":
+            return {
+              ...prev,
+              width: point.x - prev.x,
+              height: point.y - prev.y,
+            };
+
+          default:
+            return prev;
+        }
+      });
+    },
+    [
+      onCursorMove,
+      isPanning,
+      panStart,
+      isDragging,
+      selectedId,
+      dragOffset,
+      isDrawing,
+      currentElement,
+    ]
+  );
 
   // Mouse move handler
   const handleMouseMove = (e: React.MouseEvent) => {
@@ -848,7 +916,7 @@ export const Canvas = forwardRef<CanvasRef, CanvasProps>(function Canvas(
   };
 
   // Shared pointer up logic
-  const handlePointerUp = () => {
+  const handlePointerUp = useCallback(() => {
     if (isPanning) {
       setIsPanning(false);
       return;
@@ -876,153 +944,128 @@ export const Canvas = forwardRef<CanvasRef, CanvasProps>(function Canvas(
     }
 
     setIsDrawing(false);
-  };
+  }, [
+    isPanning,
+    isDragging,
+    selectedId,
+    elements,
+    pushToHistory,
+    onElementUpdate,
+    currentElement,
+    onElementAdd,
+  ]);
 
   // Mouse up handler
   const handleMouseUp = () => {
     handlePointerUp();
   };
 
-  // Touch start handler
-  const handleTouchStart = (e: React.TouchEvent) => {
-    // Prevent default to stop scrolling on canvas
-    e.preventDefault();
+  // Touch start handler (native event for passive: false support)
+  const handleTouchStart = useCallback(
+    (e: TouchEvent) => {
+      // Prevent default to stop scrolling on canvas
+      e.preventDefault();
 
-    const touches = e.touches;
+      const touches = e.touches;
 
-    // Two finger gesture - pinch to zoom or pan
-    if (touches.length === 2) {
-      const touch1 = touches[0];
-      const touch2 = touches[1];
-      if (touch1 && touch2) {
-        setLastPinchDistance(getTouchDistance(touch1, touch2));
-        const center = getTouchCenter(touch1, touch2);
-        // Calculate and store the world point at the pinch center (fixed for entire gesture)
-        const worldPoint = getCanvasPoint(center.clientX, center.clientY);
-        setPinchWorldCenter(worldPoint);
+      // Two finger gesture - pinch to zoom or pan
+      if (touches.length === 2) {
+        const touch1 = touches[0];
+        const touch2 = touches[1];
+        if (touch1 && touch2) {
+          setLastPinchDistance(getTouchDistance(touch1, touch2));
+          const center = getTouchCenter(touch1, touch2);
+          // Calculate and store the world point at the pinch center (fixed for entire gesture)
+          const worldPoint = getCanvasPoint(center.clientX, center.clientY);
+          setPinchWorldCenter(worldPoint);
+        }
+        return;
       }
-      return;
-    }
 
-    // Single finger - treat as regular pointer
-    if (touches.length === 1) {
-      const touch = touches[0];
-      if (touch) {
-        const point = getTouchPoint(e);
-        handlePointerDown(point, touch.clientX, touch.clientY);
-      }
-    }
-  };
-
-  // Touch move handler
-  const handleTouchMove = (e: React.TouchEvent) => {
-    e.preventDefault();
-
-    const touches = e.touches;
-
-    // Two finger gesture - handle pinch zoom and pan
-    if (touches.length === 2) {
-      const touch1 = touches[0];
-      const touch2 = touches[1];
-      const canvas = canvasRef.current;
-      if (touch1 && touch2 && canvas) {
-        const currentDistance = getTouchDistance(touch1, touch2);
-        const center = getTouchCenter(touch1, touch2);
-
-        // Handle pinch zoom
-        if (lastPinchDistance !== null && pinchWorldCenter) {
-          const scale = currentDistance / lastPinchDistance;
-          const newZoom = Math.min(400, Math.max(25, zoom * scale));
-
-          // Get canvas position and scale factors (must match getCanvasPoint)
-          const rect = canvas.getBoundingClientRect();
-          const scaleX = canvas.width / rect.width;
-          const scaleY = canvas.height / rect.height;
-
-          // Convert screen center to canvas-relative coordinates
-          const canvasX = (center.clientX - rect.left) * scaleX;
-          const canvasY = (center.clientY - rect.top) * scaleY;
-
-          // Calculate new offset to keep the fixed world point under the current screen center
-          // Inverse of: worldX = (canvasX - offset.x) / (zoom / 100)
-          // Therefore: offset.x = canvasX - worldX * (zoom / 100)
-          const newOffsetX = canvasX - pinchWorldCenter.x * (newZoom / 100);
-          const newOffsetY = canvasY - pinchWorldCenter.y * (newZoom / 100);
-          setOffset({ x: newOffsetX, y: newOffsetY });
-
-          setLastPinchDistance(currentDistance);
-          onZoomChange(Math.round(newZoom));
+      // Single finger - treat as regular pointer
+      if (touches.length === 1) {
+        const touch = touches[0];
+        if (touch) {
+          const point = getTouchPoint(e);
+          handlePointerDown(point, touch.clientX, touch.clientY);
         }
       }
-      return;
-    }
+    },
+    [getCanvasPoint, getTouchPoint, handlePointerDown]
+  );
 
-    // Single finger - treat as regular pointer move
-    if (touches.length === 1) {
-      const touch = touches[0];
-      if (touch) {
-        const point = getTouchPoint(e);
-        handlePointerMove(point, touch.clientX, touch.clientY);
+  // Touch move handler (native event for passive: false support)
+  const handleTouchMove = useCallback(
+    (e: TouchEvent) => {
+      e.preventDefault();
+
+      const touches = e.touches;
+
+      // Two finger gesture - handle pinch zoom and pan
+      if (touches.length === 2) {
+        const touch1 = touches[0];
+        const touch2 = touches[1];
+        const canvas = canvasRef.current;
+        if (touch1 && touch2 && canvas) {
+          const currentDistance = getTouchDistance(touch1, touch2);
+          const center = getTouchCenter(touch1, touch2);
+
+          // Handle pinch zoom
+          if (lastPinchDistance !== null && pinchWorldCenter) {
+            const scale = currentDistance / lastPinchDistance;
+            const newZoom = Math.min(400, Math.max(25, zoom * scale));
+
+            // Get canvas position and scale factors (must match getCanvasPoint)
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+
+            // Convert screen center to canvas-relative coordinates
+            const canvasX = (center.clientX - rect.left) * scaleX;
+            const canvasY = (center.clientY - rect.top) * scaleY;
+
+            // Calculate new offset to keep the fixed world point under the current screen center
+            // Inverse of: worldX = (canvasX - offset.x) / (zoom / 100)
+            // Therefore: offset.x = canvasX - worldX * (zoom / 100)
+            const newOffsetX = canvasX - pinchWorldCenter.x * (newZoom / 100);
+            const newOffsetY = canvasY - pinchWorldCenter.y * (newZoom / 100);
+            setOffset({ x: newOffsetX, y: newOffsetY });
+
+            setLastPinchDistance(currentDistance);
+            onZoomChange(Math.round(newZoom));
+          }
+        }
+        return;
       }
-    }
-  };
 
-  // Touch end handler
-  const handleTouchEnd = (e: React.TouchEvent) => {
-    // Reset pinch state
-    if (e.touches.length < 2) {
-      setLastPinchDistance(null);
-      setPinchWorldCenter(null);
-    }
-
-    // If no more touches, end the interaction
-    if (e.touches.length === 0) {
-      handlePointerUp();
-    }
-  };
-
-  // Find element at a specific point
-  const findElementAtPoint = (point: Point): CanvasElement | undefined => {
-    // Search in reverse order (top elements first)
-    for (let i = elements.length - 1; i >= 0; i--) {
-      const el = elements[i];
-      if (!el) continue;
-
-      if (el.type === "pencil" && el.points) {
-        const minX = Math.min(...el.points.map((p) => p.x));
-        const maxX = Math.max(...el.points.map((p) => p.x));
-        const minY = Math.min(...el.points.map((p) => p.y));
-        const maxY = Math.max(...el.points.map((p) => p.y));
-
-        if (point.x >= minX && point.x <= maxX && point.y >= minY && point.y <= maxY) {
-          return el;
-        }
-      } else if (el.type === "line") {
-        // Simple bounding box check for lines
-        const minX = Math.min(el.x, el.endX ?? el.x) - 5;
-        const maxX = Math.max(el.x, el.endX ?? el.x) + 5;
-        const minY = Math.min(el.y, el.endY ?? el.y) - 5;
-        const maxY = Math.max(el.y, el.endY ?? el.y) + 5;
-
-        if (point.x >= minX && point.x <= maxX && point.y >= minY && point.y <= maxY) {
-          return el;
-        }
-      } else {
-        const width = el.width ?? 150;
-        const height = el.height ?? 150;
-
-        if (
-          point.x >= el.x &&
-          point.x <= el.x + width &&
-          point.y >= el.y &&
-          point.y <= el.y + height
-        ) {
-          return el;
+      // Single finger - treat as regular pointer move
+      if (touches.length === 1) {
+        const touch = touches[0];
+        if (touch) {
+          const point = getTouchPoint(e);
+          handlePointerMove(point, touch.clientX, touch.clientY);
         }
       }
-    }
-    return undefined;
-  };
+    },
+    [getTouchPoint, handlePointerMove, lastPinchDistance, pinchWorldCenter, zoom, onZoomChange]
+  );
+
+  // Touch end handler (native event for passive: false support)
+  const handleTouchEnd = useCallback(
+    (e: TouchEvent) => {
+      // Reset pinch state
+      if (e.touches.length < 2) {
+        setLastPinchDistance(null);
+        setPinchWorldCenter(null);
+      }
+
+      // If no more touches, end the interaction
+      if (e.touches.length === 0) {
+        handlePointerUp();
+      }
+    },
+    [handlePointerUp]
+  );
 
   // Handle text input submission
   const handleTextSubmit = () => {
@@ -1153,6 +1196,25 @@ export const Canvas = forwardRef<CanvasRef, CanvasProps>(function Canvas(
     draw();
   }, [draw]);
 
+  // Attach touch event listeners with passive: false to allow preventDefault
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    // Add touch listeners with passive: false to allow preventDefault
+    canvas.addEventListener("touchstart", handleTouchStart, { passive: false });
+    canvas.addEventListener("touchmove", handleTouchMove, { passive: false });
+    canvas.addEventListener("touchend", handleTouchEnd, { passive: false });
+    canvas.addEventListener("touchcancel", handleTouchEnd, { passive: false });
+
+    return () => {
+      canvas.removeEventListener("touchstart", handleTouchStart);
+      canvas.removeEventListener("touchmove", handleTouchMove);
+      canvas.removeEventListener("touchend", handleTouchEnd);
+      canvas.removeEventListener("touchcancel", handleTouchEnd);
+    };
+  }, [handleTouchStart, handleTouchMove, handleTouchEnd]);
+
   // Get cursor style based on active tool
   const getCursor = () => {
     switch (activeTool) {
@@ -1180,10 +1242,6 @@ export const Canvas = forwardRef<CanvasRef, CanvasProps>(function Canvas(
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseUp}
         onWheel={handleWheel}
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}
-        onTouchCancel={handleTouchEnd}
       />
 
       {/* Text input overlay */}
