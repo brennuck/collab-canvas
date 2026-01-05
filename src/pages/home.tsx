@@ -13,7 +13,6 @@ import {
   Brain,
   ImageIcon,
   Link2,
-  Heart,
 } from "lucide-react";
 
 const features = [
@@ -460,7 +459,7 @@ export function HomePage() {
       <footer className="border-t border-[var(--color-border)] py-6">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <p className="text-center text-sm text-[var(--color-text-muted)]">
-            Made with <Heart className="inline-block h-4 w-4" /> by{" "}
+            Built by{" "}
             <a
               href="https://bnuckols.com"
               target="_blank"

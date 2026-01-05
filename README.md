@@ -164,4 +164,4 @@ Each board is a separate Socket.IO room (`board:${boardId}`). When users join a 
 - **Private Boards** - Only invited members can access
 - **Invite System** - Email invites or shareable links
 
-**Made with ❤️ by [Brennon Nuckols](https://bnuckols.com)**
+**Built by [Brennon Nuckols](https://bnuckols.com)**
